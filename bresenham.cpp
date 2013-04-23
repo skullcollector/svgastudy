@@ -47,20 +47,70 @@ void line(int x0, int y0, int x1, int y1) {
   int y = y0;
   int x = x0;
   
-  for (x = x0; x <= x1; x+=1) {
-    //y = d*(x-x0)+y0;
-    putpixel(x,y, 0xff0000);
-    //printf("%d %d %f %f %f %f\n",x,y, err, d, deltax, deltay);
-    err = err+d;    
-    if (err >= 0.5) {
-      y += 1;
-      err -= 1.0;
+  if (true) { //( d > 0 ) {
+    for (x = x0; x <= x1; x+=1) {
+      putpixel(x,y, 0xff0000);
+      err = err+d;    
+      if (err >= 0.5) {
+	y += 1;
+	err -= 1.0;
+      }
     }
-    // break;
-    //putpixel(x,y, 0xff0000);
-    
+  }
+  // else if ( d < 0 ) {
+  //   for (x = x0; x <= x1; x+=1) {
+  //     putpixel(x,y, 0xff0000);
+  //     err = err+d;    
+  //     if (err <= 0.5) {
+  // 	y -= 1;
+  // 	err -= 1.0;
+  //     }
+  //   }    
+  // }
+}
+
+
+void line2(int x0, int y0, int x1, int y1) {
+  float deltax = (float)(x1-x0);
+  float deltay = (float)(y1-y0);
+  
+  float d = deltay/deltax;
+  float err = 0;
+
+  int y = y0;
+  int x = x0;
+  
+  if ( d > 0 ) {
+    for (x = x0; x <= x1; x+=1) {
+      putpixel(x,y, 0xff0000);
+      err = err+d;    
+      if (err >= 0.5) {
+	y += 1;
+	err -= 1.0;
+      }
+    }
+  }
+  else if ( d < 0 ) {
+    for (x = x0; x <= x1; x+=1) {
+      putpixel(x,y, 0xff0000);
+      err = err+d;    
+      if (err <= -0.5) {
+  	y -= 1;
+  	err += 1.0;
+      }
+    }    
   }
 }
+
+
+
+typedef struct Coord{
+  int x;
+  int y;
+};
+
+static Coord coordlist[] = { {10,10},
+			     {200, 100}, {400,10}};
 
 void render()
 {   
@@ -74,27 +124,21 @@ void render()
 
   int xstart=0, ystart=0, xend=0, yend=0;
   int colour=0x00ff00;
-  int colourstart = 0x0000ff;
+  int colourstart = 0x00ffff;
   // Declare a couple of variables
   
-  xstart = 0; ystart=0;
-  xend=200; yend=100;
-  line(xstart, ystart, xend, yend);
-  putpixel(xend, yend, colour);
-
-  xend=300; yend=300;
-  line(xstart, ystart, xend, yend);
-  putpixel(xstart, ystart, colourstart);
-  putpixel(xend, yend, colour);
-
-  // this won't work.. yet..
-  xstart=300; ystart=300;
-  xend=350; yend = 250;
-  line(xstart, ystart, xend, yend);
-  putpixel(xstart, ystart, colourstart);
-  putpixel(xend, yend, colour);
-
-  //putpixel(11, 11, 0xff0000);
+  int i0=0, i1=0;
+  int listlen = sizeof(coordlist)/sizeof(Coord);
+  for (int i = 0; i  <  listlen; i++){
+    i0 = i % listlen;
+    i1 = (i+1)%listlen;
+    line2(coordlist[i0].x, coordlist[i0].y, coordlist[i1].x, coordlist[i1].y);
+    putpixel(coordlist[i0].x, coordlist[i0].y, 0xffff00);
+    putpixel(coordlist[i1].x, coordlist[i1].y, colourstart);
+    //printf("%d, %d,:: %d %d",coordlist[i0].x, coordlist[i0].y, coordlist[i1].x, coordlist[i1].y);
+  }
+  
+  
   // Unlock if needed
   if (SDL_MUSTLOCK(screen)) 
     SDL_UnlockSurface(screen);
@@ -113,7 +157,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
     exit(1);
   }
-
+  printf(" size %d ", sizeof(coordlist)/sizeof(Coord));
   // Register SDL_Quit to be called at exit; makes sure things are
   // cleaned up when we quit.
   atexit(SDL_Quit);
