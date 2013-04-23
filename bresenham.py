@@ -210,3 +210,13 @@ pt2 = Coord(0,10)
 print pt1,pt2,'vs', list(line(pt1, pt2))[-1]
 
 
+XDIM,YDIM = 20,10
+buffer = [0 for i in range(XDIM*YDIM)]
+def putchar(x,y,char):
+    global XDIM
+    buffer[x+y*XDIM] = char
+
+for x in range(0,XDIM):
+    for y in range(0,YDIM):
+        print buffer[x+y*YDIM],
+    print
