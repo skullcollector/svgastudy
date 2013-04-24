@@ -109,8 +109,12 @@ typedef struct Coord{
   int y;
 };
 
-static Coord coordlist[] = { {10,10},
-			     {200, 100}, {400,10}};
+static Coord coordlist[] = { 
+  {10,10},
+  {200, 100}, 
+  {400,10},
+  {500,200}
+};
 
 void render()
 {   
