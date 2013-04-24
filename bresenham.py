@@ -160,7 +160,7 @@ def line(start,end):
     elif category == "horizontal":
         pt_range = [(x, start.y) for x in range(*([start.x, end.x, increment(start.x,end.x)]))]
     else : # category == "vertical":
-        pt_range = [(start.x, y) for y in range(*([start.y, end.y, increment(start.x,end.x)]))]
+        pt_range = [(start.x, y) for y in range(*([start.y, end.y, increment(start.y,end.y)]))]
     return pt_range
         
 print 200*'='
@@ -210,13 +210,37 @@ pt2 = Coord(0,10)
 print pt1,pt2,'vs', list(line(pt1, pt2))[-1]
 
 
-XDIM,YDIM = 20,10
-buffer = [0 for i in range(XDIM*YDIM)]
+XDIM,YDIM = 50,40
+buffer = [' ' for i in range(XDIM*YDIM)]
 def putchar(x,y,char):
     global XDIM
-    buffer[x+y*XDIM] = char
+    buffer[x+y*YDIM] = char
 
-for x in range(0,XDIM):
-    for y in range(0,YDIM):
+pt1,pt2 = Coord(10,10), Coord(20,20)
+def charline(pt1, pt2):
+    aline = list(line(pt1,pt2))
+    for i in aline:
+        x,y = i 
+        putchar(x,y,'*')
+    putchar(pt1.x,pt1.y,'X')
+    putchar(pt2.x,pt2.y,'Q')
+
+
+
+charline(Coord(10,10),
+         Coord(10,20))
+
+charline(Coord(10,20),
+         Coord(20,20))
+
+charline(Coord(20,20),
+         Coord(20,10))
+
+charline(Coord(20,10),
+         Coord(10,10))
+
+for y in range(0,YDIM):
+    for x in range(0,XDIM):
         print buffer[x+y*YDIM],
     print
+
