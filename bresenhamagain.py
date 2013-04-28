@@ -113,24 +113,10 @@ def line1(start, stop, debug = False):
 #       EVGADot(X0, Y0);           /* draw a pixel */
 #    }
 # }
-# def oct0(x,y, delx,dely, xdir):
-#     delmod = dely*2 - delx*2
-#     delmod2 = dely*2
-#     error = dely*2 - delx
-    
-#     while delx > 0:
-#         delx -= 1
-#         if error >= 0:
-#             y += 1
-#             error += delmod
-#         else:
-#             error += delmod2
-#         x += xdir
-#         yield (x,y)
 
 
 # let me try something like this...
-def oct0(x,y,dx, dy, xdir,ydir, debug=False):
+def oct0(x,y,dx, dy, xdir, debug=False):
     M = 1.0*dy/dx  # I still use floats... for now.
     error = { 0 : lambda olderror:  (olderror + M),    # x,y   below yreal  by    error+M
               1 : lambda olderror: (olderror + M)-1}   # x,y+1 above yreal  by 1-(error+M)
@@ -138,20 +124,22 @@ def oct0(x,y,dx, dy, xdir,ydir, debug=False):
     cur_error=0
 
     while dx > 0:
-        dx -= 1
+        x += xdir
+        dx -= 1      
         if error[0](cur_error) < 0.5:
             cur_error = error[0](cur_error)
         else:
             cur_error = error[1](cur_error)
-            y += ydir
-        x += xdir
+            y += 1
+
         if debug:
             yield x, y, cur_error
         else:
             yield x,y
 
-def oct1(x,y,dx, dy,xdir, ydir, debug=False):
+def oct1(x,y,dx, dy,xdir, debug=False):
     M = 1.0*dx/dy
+
     error = { 0 : lambda olderror:  (olderror + M),    # x,y   below yreal  by    error+M
               1 : lambda olderror: (olderror + M)-1}   # x,y+1 above yreal  by 1-(error+M)
 
@@ -163,43 +151,114 @@ def oct1(x,y,dx, dy,xdir, ydir, debug=False):
         else:
             cur_error = error[1](cur_error)
             x += xdir
-        y += ydir       
+        y += 1       
         if debug:
             yield x, y, cur_error
         else:
             yield x,y
     
-def line2(start, stop, debug=False):        
+def line2a(start, stop, debug=False):        
     dx,dy = dxdy(start, stop)
-    
-    # error = { 0 : lambda olderror:  (olderror + M),    # x,y   below yreal  by    error+M
-    #           1 : lambda olderror: (olderror + M)-1}   # x,y+1 above yreal  by 1-(error+M)
-    
-
-    xincr = -1 if dx < 0 else 1
-    yincr = -1 if dy < 0 else 1
-    if dx < 0:
-        dx = -dx
-        x,y = stop.x, stop.y        
-    else:
-        x,y = start.x, start.y        
+     
+    # xincr = -1 if dx < 0 else 1
 
     if dy < 0:
-        dy = -dy
         x,y = stop.x, stop.y        
     else:
         x,y = start.x, start.y        
 
-    # if dx ==0:
-    #     return [(x, yy) for yy in range(y,y+dy,yincr)]
+    if dx ==0 or dy ==0:
+        return []
 
-    # if dy ==0:
-    #     return [(xx, y) for xx in range(x+dx,x,xincr)]
-
-    if dx > dy:
-        return oct0(x, y, dx,dy, xincr,yincr, debug=debug)
+    if dx > 0:
+        if dx > dy:
+            return oct0(x, y, dx,dy, 1, debug=debug)
+        else:
+            return oct1(x, y, dx,dy, 1, debug=debug)
     else:
-        return oct1(x, y, dx,dy, xincr,yincr, debug=debug)
+        dx = -dx
+        if dx > dy:
+            return oct0(x, y, dx,dy, -1, debug=debug)
+        else:
+            return oct1(x, y, dx,dy, -1, debug=debug)
+        
+
+# if ( DeltaX > 0 ) {
+#    if ( DeltaX > DeltaY ) {
+#       Octant0(X0, Y0, DeltaX, DeltaY, 1);
+#    } else {
+#       Octant1(X0, Y0, DeltaX, DeltaY, 1);
+#    }
+# } else {
+#    DeltaX = -DeltaX;             /* absolute value of DeltaX */
+#    if ( DeltaX > DeltaY ) {
+#       Octant0(X0, Y0, DeltaX, DeltaY, -1);
+#    } else {
+#       Octant1(X0, Y0, DeltaX, DeltaY, -1);
+#    }
+# }
+
+def octant_sub_45_degrees(x,y,dx,dy, xdir, debug=False):
+    M = 1.0*dx/dy
+
+    error = { 0 : lambda olderror:  (olderror + M),    # x,y   below yreal  by    error+M
+              1 : lambda olderror: (olderror + M)-1}   # x,y+1 above yreal  by 1-(error+M)
+
+    cur_error =0    
+    while dx > 0:
+        dx -= 1
+        x += xdir
+        
+        if error[0](cur_error) < 0.5:
+            cur_error = error[0](cur_error)
+        else:
+            cur_error = error[1](cur_error)
+        y += 1
+
+        if debug:
+            yield x, y, cur_error
+        else:
+            yield x,y
+            
+import pdb; pdb.set_trace()
+pts = [ [Coord(20,20), Coord(40,30)],
+        [Coord(20,20), Coord(0,30)],]
+        # [Coord(20,20), Coord(40,30)],
+        # [Coord(20,20), Coord(40,30)]]
+for p in pts:
+    dx,dy = dxdy(*p)
+    #xdir = -1 if dx < 0 else 1
+    if dx/dx == dy/dy:
+        xdir = 1
+
+    l = list( octant_sub_45_degrees(x, y, dx,dy, xdir) )
+    
+import pdb; pdb.set_trace()
+
+def line2(start, stop, debug=False):        
+    dx,dy = dxdy(start, stop)
+     
+    # xincr = -1 if dx < 0 else 1
+
+    # if dy < 0:
+    #     x,y = stop.x, stop.y        
+    # else:
+    #     x,y = start.x, start.y        
+
+    # if dx ==0 or dy ==0:
+    #     return []
+
+    # if dx > 0:
+    #     if dx > dy:
+    #         return oct0(x, y, dx,dy, 1, debug=debug)
+    #     else:
+    #         return oct1(x, y, dx,dy, 1, debug=debug)
+    # else:
+    #     dx = -dx
+    #     if dx > dy:
+    #         return oct0(x, y, dx,dy, -1, debug=debug)
+    #     else:
+    #         return oct1(x, y, dx,dy, -1, debug=debug)
         
 
 from math import sqrt
@@ -257,3 +316,36 @@ for corner in range(0,MAX_CORNERS):
     rcs, rsn = int(round(CENTER.x+RADIUS*cos(offset+corner))), int(round(CENTER.y+RADIUS*sin(offset+corner)))
     morecases.append([CENTER,Coord(rcs, rsn)])
 test(line2, morecases)
+i = 0
+#import pdb; pdb.set_trace()
+print "number",i
+case = morecases[i]
+print case[0],case[1],list(line2(*case,debug=True))
+
+i+=1
+print "number",i
+case = morecases[i]
+print case[0],case[1],list(line2(*case,debug=True))
+
+i+=1
+print "number",i
+case = morecases[i]
+print case[0],case[1],list(line2(*case,debug=True))
+
+i+=1
+print "number",i
+case = morecases[i]
+print case[0],case[1],list(line2(*case,debug=True))
+
+
+i+=1
+print "number",i
+case = morecases[i]
+print case[0],case[1],list(line2(*case,debug=True))
+
+i+=1
+print "number",i
+case = morecases[i]
+print case[0],case[1],list(line2(*case,debug=True))
+
+
