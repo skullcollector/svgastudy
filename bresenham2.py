@@ -213,7 +213,7 @@ print pt1, pt2, dx, dy
 
 print 'refactor2 '*20
 
-def xline(start, stop):
+def xline(start, stop, debug=False):
     '''
     only covers half the octants...
     '''
@@ -232,7 +232,10 @@ def xline(start, stop):
     y = start.y
     olderror = 0;
     for x in range(start.x, stop.x,xincr):
-        yield (x,y)
+        if debug:
+            yield (x,y,olderror)
+        else:
+            yield (x,y)
         if 2*error_function[0](olderror) < dx:
             olderror = error_function[0](olderror)
         else:   
@@ -263,11 +266,11 @@ def yline(start, stop):
     xincr = -1 if dx < 0 else 1
     yincr = -1 if dy < 0 else 1
     
-    error_function_pos_dy = { 0: lambda old_error: old_error + dx,
-                              1: lambda old_error: old_error + dx - dy }
+    error_function_pos_dy = { 0: lambda old_error: (old_error + dx),
+                              1: lambda old_error: (old_error + dx - dy) }
     
-    error_function_neg_dy = { 0: lambda old_error: old_error - dx,
-                              1: lambda old_error: old_error - dx - dy }
+    error_function_neg_dy = { 0: lambda old_error: (old_error - dx),
+                              1: lambda old_error: (old_error - dx - dy) }
 
     error_function = error_function_pos_dy if xincr == 1 else error_function_neg_dy
 
@@ -310,7 +313,8 @@ def line (start, stop):
         return [(x, start.y) for x in range(*([start.x, stop.x,xincr]))]
 
     if abs(dx) < abs(dy):
-        return list(yline(start,stop))
+        pass
+        #return list(yline(start,stop))
     else:
         return list(xline(start,stop))
 
@@ -352,7 +356,7 @@ angle = lambda num : num*2*pi/(1.0*corners)
 output = []
 for corner in range(corners,0,-1):
     a = angle(corner)
-    x,y = int(round(center.x+radius*cos(a))), int(round(center.y+radius*sin(a)))
+    x,y = int(round(center.x+radius*cos(a+pi/6))), int(round(center.y+radius*sin(a+pi/6)))
     putchar(x,y,'@')
     output += [Coord(x,y)]
 print output
@@ -364,9 +368,31 @@ for y in range(0,YDIM):
     for x in range(0,XDIM):
         print buffer[x+y*YDIM],
     print
-import pdb; pdb.set_trace()
-pt2 = Coord(15,29)
-pt1 = Coord(10,20)
-print pt1,pt2,line(pt1,pt2)[-1]
-print pt1,pt2,list(xline(pt1,pt2))[-1]
-print pt1,pt2,list(yline(pt1,pt2))[-1]
+
+# . . . . . . . . . . . 1 1 , 2 5 > . . . . . . . . . . . . 2 5 , 2 5 < . . . . . . . . . . . . . . .
+# . . . . . . . . . . . . * * . . . . . . . . . . . . . * * . . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . . . . * * . . . . . . . . . * * . . . . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . . . . . . * * . . . . . * * . . . . . . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . . . . . . . . * * . * * . . . . . . . . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . . . . . . . . . . 2 0 , 3 0 > . . . . . . . . . . . . . . . . . . . . . . . .
+
+swap = lambda a : [a[1], a[0]]
+pts = [Coord(11,25), Coord(20,30)]
+print pts[0],pts[1],list(xline(*pts))[-1]
+pts = swap(pts)
+print pts[0],pts[1],list(xline(*pts))[-1]
+
+# . . . . . . . . . . . . . . . . . . . . 2 0 , 1 0 > . . . . . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . . . . . . . . . * . . . . . * . . . . . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . . . . . . . . * . . . . . . . * . . . . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . . . . . . . * . . . . . . . . . * . . . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . . . . . . * . . . . . . . . . . . * . . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . 1 1 , 1 5 > . . . . . . . . . . . . 2 9 , 1 5 > . . . . . . . . . . . . . . .
+# . . . . . . . . . . . * . . * . . . . . . . . . . . . . . * . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . * . * . . . . . . . . . . . . . . . * . . . . . . . . . . . . . . . . . . . .
+# . . . . . . . . . . . * * . . . . . . . . . . . . . . . . * . . . . . . . . . . . . . . . . . . . .
+
+pts = [Coord(11,15), Coord(20,10)]
+print pts[0],pts[1],list(xline(*pts,debug=True))[-1]
+pts = swap(pts)
+print pts[0],pts[1],list(xline(*pts,debug=True))[-1]
