@@ -1,4 +1,4 @@
-from math import pi, sin, cos
+from math import pi, sin, cos, sqrt, atan
 
 class Coord:
     x = 0;
@@ -9,8 +9,35 @@ class Coord:
     def __str__(self):
         return "<%d,%d>"%(self.x, self.y)
 
+    def __repr__(self):
+        return "<%d,%d>"%(self.x, self.y)
 
 dxdy = lambda start,stop : (stop.x - start.x, stop.y - start.y)
+close_enough = lambda actualpnt, calcpnt: sqrt((actualpnt.x-calcpnt.x)**2 + (actualpnt.y-calcpnt.y)**2) < 2
+
+#------- Test helpers----
+
+def gen_pts_with_gradient(gradient,start_coord=Coord(0,0),radius=10):
+    # (Ystop-Ystart)/(Xstop-Xstart) = (y-Ystart)/(x-Xstart)
+    # y = 1.0*(Ystop-Ystart)/(Xstop-Xstart)*(x-Xstart) + Ystart
+    angle = atan(gradient)
+    x,y = start_coord.x+int(round(radius*cos(angle))),start_coord.y+int(round(radius*sin(angle)))
+    end_coord = Coord(x,y)
+    return [start_coord, end_coord]
+
+
+def print_gradient_example(gradient, radius=100, start_coord=Coord(0,0)):
+    start,stop = gen_pts_with_gradient(gradient=gradient,radius=radius, start_coord=start_coord)
+    dx,dy = dxdy(start,stop)
+    M = 1.0*dy/dx
+    print start,stop,M  
+
+
+def testcases(gradient_list=[2,1.75,1.5,1.25,1,0.75,0.5,0.25,0.15], start_coord=Coord(0,0)):
+    for grad in gradient_list:       
+        yield gen_pts_with_gradient(grad, start_coord=start_coord)
+              
+#------------------------
 
 
 class CharPlotter(object):
