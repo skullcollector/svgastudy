@@ -96,21 +96,21 @@ def line_skeleton(ptA,ptB,oct_x_dom=None,oct_y_dom=None):
             for pt in oct_x_dom(ptA,ptB):
                 yield pt
         else:
-            # if not oct_y_dom:
-            #     raise Exception("Y dominant Line octants not implemented")
+            if not oct_y_dom:
+                raise Exception("Y dominant Line octants not implemented")
                 
-            # for pt in oct_y_dom(ptA,ptB):
-            #     yield pt
-            yield (0,0)
+            for pt in oct_y_dom(ptA,ptB):
+                yield pt
+
             
 class CharPlotter(object):
-    def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None, oct_x_dom=None, oct_y_dom=None):
+    def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None, filler_char=' ', oct_x_dom=None, oct_y_dom=None):
         self.XDIM = XDIM
         self.YDIM = YDIM
         self.line = linefunc
         self.oct_x_dom = oct_x_dom
         self.oct_y_dom = oct_y_dom
-        self.buffer = ['.' for i in range(self.XDIM*self.YDIM)] if not buffer else buffer
+        self.buffer = [filler_char for i in range(self.XDIM*self.YDIM)] if not buffer else buffer
 
     def call_line(self,start,stop):
         for i in self.line(start,stop,oct_x_dom=self.oct_x_dom, oct_y_dom=self.oct_y_dom):
