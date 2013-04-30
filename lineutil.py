@@ -40,46 +40,6 @@ def testcases(gradient_list=[2,1.75,1.5,1.25,1,0.75,0.5,0.25,0.15], start_coord=
               
 #------------------------
 
-def line_skeleton0(ptA,ptB,oct_x_dom=None, oct_y_dom=None):
-    '''
-    assumptions:
-    x is only increasing.
-    '''
-    dx,dy = dxdy(ptA,ptB)
-    #import pdb; pdb.set_trace()
-    startx, starty = ptA.x,ptA.y
-    stopx, stopy = ptB.x,ptB.y
-
-    yincr = 1
-    if dx < 0:
-        dx = -dx                      # get abs
-        dy = -dy                      # to keep gradient correct
-        startx, starty = ptB.x,ptB.y
-        stopx, stopy = ptA.x,ptA.y
-
-    if dy < 0:
-        yincr = -1
-
-    if practically_nothing(dx):
-        y = starty
-        while dy > 0:
-            dy -= 1
-            yield (startx, y)
-            y += 1
-            
-        while dy < 0:
-            dy += 1
-            yield (startx, y)
-            y -= 1
-        
-            
-    if practically_nothing(dy):
-        x = startx
-        while dx > 0:
-            dx -= 1
-            yield (x, starty)
-            x += 1
-
 def line_skeleton(ptA,ptB,oct_x_dom=None, oct_y_dom=None):
     '''
     assumptions:
