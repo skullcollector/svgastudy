@@ -90,13 +90,6 @@ def line_skeleton(ptA,ptB,oct_x_dom=None, oct_y_dom=None):
     startx, starty = ptA.x,ptA.y
     stopx, stopy = ptB.x,ptB.y
 
-    # yincr = 1
-    # if dx < 0:
-    #     dx = -dx                      # get abs
-    #     dy = -dy                      # to keep gradient correct
-    #     startx, starty = ptB.x,ptB.y
-    #     stopx, stopy = ptA.x,ptA.y
-
     if practically_nothing(dx):
         y = starty
         while dy > 0:
@@ -121,6 +114,21 @@ def line_skeleton(ptA,ptB,oct_x_dom=None, oct_y_dom=None):
             dx += 1
             yield (x, starty)
             x -= 1
+
+    if not practically_nothing(dy) and not practically_nothing(dx):
+        if not oct_x_dom:
+            raise Exception("X dominant Line octants not implemented")
+        if not oct_y_dom:
+            raise Exception("Y dominant Line octants not implemented")
+        #import pdb; pdb.set_trace()
+        points = []
+        if abs(dx) > abs(dy):
+            for pt in oct_x_dom(x,y,dx,dy):
+                yield pt
+        else:
+            for pt in oct_y_dom(x,y,dx,dy):
+                yield pt
+        
 
 class CharPlotter(object):
     def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None):
