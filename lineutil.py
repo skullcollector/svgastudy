@@ -39,14 +39,17 @@ def testcases(gradient_list=[2,1.75,1.5,1.25,1,0.75,0.5,0.25,0.15], start_coord=
         yield gen_pts_with_gradient(grad, start_coord=start_coord,radius=radius)
               
 #------------------------
+# def curry(fn, **kwargs):
+#     def wrapped(*args,**kw):
+#         return fn(kwargs)
 
-def line_skeleton(ptA,ptB,oct_x_dom=None, oct_y_dom=None):
+def line_skeleton(ptA,ptB,oct_x_dom=None,oct_y_dom=None):
     '''
     assumptions:
     x is only increasing.
     '''
     dx,dy = dxdy(ptA,ptB)
-    #import pdb; pdb.set_trace()
+
     startx, starty = ptA.x,ptA.y
     stopx, stopy = ptB.x,ptB.y
 
@@ -76,25 +79,35 @@ def line_skeleton(ptA,ptB,oct_x_dom=None, oct_y_dom=None):
             x -= 1
 
     if not practically_nothing(dy) and not practically_nothing(dx):
-        if not oct_x_dom:
-            raise Exception("X dominant Line octants not implemented")
-        if not oct_y_dom:
-            raise Exception("Y dominant Line octants not implemented")
+
         #import pdb; pdb.set_trace()
+        dx,dy = dxdy(ptA,ptB)
+        
+        startx, starty = ptA.x,ptA.y
+        stopx, stopy = ptB.x,ptB.y
+
         points = []
-        if abs(dx) > abs(dy):
-            for pt in oct_x_dom(x,y,dx,dy):
+        if abs(dx) >= abs(dy):
+            if not oct_x_dom:
+                raise Exception("X dominant Line octants not implemented")
+
+            for pt in oct_x_dom(ptA,ptB):
                 yield pt
         else:
-            for pt in oct_y_dom(x,y,dx,dy):
+            if not self.oct_y_dom:
+                raise Exception("Y dominant Line octants not implemented")
+
+            for pt in oct_y_dom(ptA,ptB):
                 yield pt
         
 
 class CharPlotter(object):
-    def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None):
+    def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None, oct_x_dom=None, oct_y_dom=None):
         self.XDIM = XDIM
         self.YDIM = YDIM
         self.line = linefunc
+        self.oct_x_dom = oct_x_dom
+        self.oct_y_dom = oct_y_dom
         self.buffer = ['.' for i in range(self.XDIM*self.YDIM)] if not buffer else buffer
 
     def render(self):
@@ -108,7 +121,7 @@ class CharPlotter(object):
             self.buffer[x+i+y*self.YDIM] = c
 
     def charline(self,pt1, pt2, marks=None):        
-        aline = list(self.line(pt1,pt2))
+        aline = list(self.line(pt1,pt2,oct_x_dom= self.oct_x_dom,oct_y_dom = self.oct_y_dom))
         for i in aline:
             x,y = i 
             self.putchar(x,y,'*')
