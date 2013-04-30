@@ -150,7 +150,6 @@ class CharPlotter(object):
         theta = kwargs.get('theta',0)
         corners = kwargs.get('num_of_corners',4)        
         radius =  kwargs.get('radius', 10)
-        import pdb; pdb.set_trace()
         angle = lambda num : num*2*pi/(1.0*corners)
         output = []
         for corner in range(corners,0,-1):
