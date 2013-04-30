@@ -110,6 +110,10 @@ class CharPlotter(object):
         self.oct_y_dom = oct_y_dom
         self.buffer = ['.' for i in range(self.XDIM*self.YDIM)] if not buffer else buffer
 
+    def call_line(self,start,stop):
+        for i in self.line(start,stop,oct_x_dom=self.oct_x_dom, oct_y_dom=self.oct_y_dom):
+            yield i
+
     def render(self):
         for y in range(0,self.YDIM):
             for x in range(0,self.XDIM):
@@ -121,7 +125,8 @@ class CharPlotter(object):
             self.buffer[x+i+y*self.YDIM] = c
 
     def charline(self,pt1, pt2, marks=None):        
-        aline = list(self.line(pt1,pt2,oct_x_dom= self.oct_x_dom,oct_y_dom = self.oct_y_dom))
+        #aline = list(self.line(pt1,pt2,oct_x_dom= self.oct_x_dom,oct_y_dom = self.oct_y_dom))
+        aline = list(self.call_line(pt1,pt2))
         for i in aline:
             x,y = i 
             self.putchar(x,y,'*')
