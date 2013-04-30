@@ -20,29 +20,29 @@ def oct_x_dom_imp(ptA,ptB):
     startx,starty = ptA.x,ptA.y
     stopx,stopy = ptB.x,ptB.y
 
-    M = 1.0*dy/dx
     xincr = 1
     if dx < 0:
-        dx = -dx        
-        xincr = -1
+        #dx = -dx        
+        #xincr = -1
+        startx,starty = ptB.x,ptB.y
+        stopx,stopy = ptA.x,ptA.y
+        dx, dy = dxdy(ptB,ptA)
+
+    M = abs(1.0*dy/dx)
         
     yincr = 1
     if dy < 0:
         dy = -dy
         yincr = -1
 
-    if xincr > 0:
-        new_error = { 'skipping y': lambda current_error : current_error + M,
-                      'adding to y': lambda current_error : current_error + M - 1}
-    else:
-        new_error = { 'skipping y': lambda current_error :   - current_error - M,
-                      'adding to y': lambda current_error : 1- current_error - M}
+    new_error = { 'skipping y': lambda current_error : current_error + M,
+                  'adding to y': lambda current_error : current_error + M - 1}
         
     x = startx
     y = starty
     current_error = 0
     while dx > 0:
-        print current_error
+        print current_error, M, xincr, yincr
         dx -= 1      
         x += 1
         a_error =new_error['skipping y'](current_error)
@@ -67,20 +67,25 @@ print list(plt2.line(Coord(10,20),Coord(10,10)))
 
 
 #plt2.oct_x_dom = oct_x_dom_imp
-gradient_list = [0.75,0.5,0.25,0.15]
+# gradient_list = [1,0.75,0.5,0.25,0.15,0.1,0.05,-1]
 
-cases = testcases(gradient_list=gradient_list,start_coord=Coord(15,20), radius=20)
-for n,i in enumerate(cases):
-    print gradient_list[n],i
-    plt2.charline(*i, marks=True)
+# cases = testcases(gradient_list=gradient_list,start_coord=Coord(15,20), radius=20)
+# for n,i in enumerate(cases):
+#     print gradient_list[n],i
+#     plt2.charline(*i, marks=True)
+# plt2.render()
+
+# gradient_list = [-gradient_list[i] for i in range(len(gradient_list)-1,0,-1)]
+# cases = testcases(gradient_list=gradient_list,start_coord=Coord(15,20), radius=20)
+# for n,i in enumerate(cases):
+#     print gradient_list[n],i
+#     #import pdb;pdb.set_trace()
+#     plt2.charline(*i, marks=True)
+#     print i,dxdy(*i) ,list(plt2.call_line(*i))
+# #plt2.render()
+
+plt2.regupoly(crds,marks='.')
+plt2.regupoly(plt2.create_npoly(x=30,y=20,num_of_corners=5),marks='.')
 plt2.render()
 
-gradient_list = [-gradient_list[i] for i in range(len(gradient_list)-1,0,-1)]
-cases = testcases(gradient_list=gradient_list,start_coord=Coord(15,20), radius=20)
-for n,i in enumerate(cases):
-    print gradient_list[n],i
-    #import pdb;pdb.set_trace()
-    plt2.charline(*i, marks=True)
-    print i,dxdy(*i) ,list(plt2.call_line(*i))
-plt2.render()
 

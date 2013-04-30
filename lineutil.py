@@ -21,7 +21,9 @@ practically_nothing = lambda val : abs(val) < 0.1
 def gen_pts_with_gradient(gradient,start_coord=Coord(0,0),radius=10):
     # (Ystop-Ystart)/(Xstop-Xstart) = (y-Ystart)/(x-Xstart)
     # y = 1.0*(Ystop-Ystart)/(Xstop-Xstart)*(x-Xstart) + Ystart
+    #size = gradient
     angle = atan(gradient)
+    print 180*angle/pi, gradient,'...'
     x,y = start_coord.x+int(round(radius*cos(angle))),start_coord.y+int(round(radius*sin(angle)))
     end_coord = Coord(x,y)
     return [start_coord, end_coord]
@@ -94,13 +96,13 @@ def line_skeleton(ptA,ptB,oct_x_dom=None,oct_y_dom=None):
             for pt in oct_x_dom(ptA,ptB):
                 yield pt
         else:
-            if not self.oct_y_dom:
-                raise Exception("Y dominant Line octants not implemented")
-
-            for pt in oct_y_dom(ptA,ptB):
-                yield pt
-        
-
+            # if not oct_y_dom:
+            #     raise Exception("Y dominant Line octants not implemented")
+                
+            # for pt in oct_y_dom(ptA,ptB):
+            #     yield pt
+            yield (0,0)
+            
 class CharPlotter(object):
     def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None, oct_x_dom=None, oct_y_dom=None):
         self.XDIM = XDIM
