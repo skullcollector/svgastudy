@@ -14,6 +14,7 @@ class Coord:
 
 dxdy = lambda start,stop : (stop.x - start.x, stop.y - start.y)
 close_enough = lambda actualpnt, calcpnt: sqrt((actualpnt.x-calcpnt.x)**2 + (actualpnt.y-calcpnt.y)**2) < 2
+practically_nothing = lambda val : abs(val) < 0.1
 
 #------- Test helpers----
 
@@ -33,19 +34,100 @@ def print_gradient_example(gradient, radius=100, start_coord=Coord(0,0)):
     print start,stop,M  
 
 
-def testcases(gradient_list=[2,1.75,1.5,1.25,1,0.75,0.5,0.25,0.15], start_coord=Coord(0,0)):
+def testcases(gradient_list=[2,1.75,1.5,1.25,1,0.75,0.5,0.25,0.15], start_coord=Coord(0,0),radius=10):
     for grad in gradient_list:       
-        yield gen_pts_with_gradient(grad, start_coord=start_coord)
+        yield gen_pts_with_gradient(grad, start_coord=start_coord,radius=radius)
               
 #------------------------
 
+def line_skeleton0(ptA,ptB,oct_x_dom=None, oct_y_dom=None):
+    '''
+    assumptions:
+    x is only increasing.
+    '''
+    dx,dy = dxdy(ptA,ptB)
+    #import pdb; pdb.set_trace()
+    startx, starty = ptA.x,ptA.y
+    stopx, stopy = ptB.x,ptB.y
+
+    yincr = 1
+    if dx < 0:
+        dx = -dx                      # get abs
+        dy = -dy                      # to keep gradient correct
+        startx, starty = ptB.x,ptB.y
+        stopx, stopy = ptA.x,ptA.y
+
+    if dy < 0:
+        yincr = -1
+
+    if practically_nothing(dx):
+        y = starty
+        while dy > 0:
+            dy -= 1
+            yield (startx, y)
+            y += 1
+            
+        while dy < 0:
+            dy += 1
+            yield (startx, y)
+            y -= 1
+        
+            
+    if practically_nothing(dy):
+        x = startx
+        while dx > 0:
+            dx -= 1
+            yield (x, starty)
+            x += 1
+
+def line_skeleton(ptA,ptB,oct_x_dom=None, oct_y_dom=None):
+    '''
+    assumptions:
+    x is only increasing.
+    '''
+    dx,dy = dxdy(ptA,ptB)
+    #import pdb; pdb.set_trace()
+    startx, starty = ptA.x,ptA.y
+    stopx, stopy = ptB.x,ptB.y
+
+    # yincr = 1
+    # if dx < 0:
+    #     dx = -dx                      # get abs
+    #     dy = -dy                      # to keep gradient correct
+    #     startx, starty = ptB.x,ptB.y
+    #     stopx, stopy = ptA.x,ptA.y
+
+    if practically_nothing(dx):
+        y = starty
+        while dy > 0:
+            dy -= 1
+            yield (startx, y)
+            y += 1
+            
+        while dy < 0:
+            dy += 1
+            yield (startx, y)
+            y -= 1
+        
+            
+    if practically_nothing(dy):
+        x = startx
+        while dx > 0:
+            dx -= 1
+            yield (x, starty)
+            x += 1
+            
+        while dx < 0:
+            dx += 1
+            yield (x, starty)
+            x -= 1
 
 class CharPlotter(object):
-    def __init__(self, XDIM=50, YDIM=40, linefunc=lambda x,y: [(x,y) for i in range(0,10)]):
+    def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None):
         self.XDIM = XDIM
         self.YDIM = YDIM
         self.line = linefunc
-        self.buffer = ['.' for i in range(self.XDIM*self.YDIM)]
+        self.buffer = ['.' for i in range(self.XDIM*self.YDIM)] if not buffer else buffer
 
     def render(self):
         for y in range(0,self.YDIM):

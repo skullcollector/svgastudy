@@ -206,12 +206,24 @@ crds = [Coord(10,10),
         Coord(20,10)]
 
 plt = CharPlotter(linefunc=line)
-plt.regupoly(crds,marks='.')
-plt.regupoly(plt.create_npoly(x=30,y=20,num_of_corners=5),marks='.')
-plt.render()
+#plt.regupoly(crds,marks='.')
+# plt.regupoly(plt.create_npoly(x=30,y=20,num_of_corners=5),marks='.')
+# plt.render()
 
-gradient_list = [2,1.75,1.5,1.25,1,0.75,0.5,0.25,0.15]
+gradient_list = [1.75,1.5,1.25,1,0.75,0.5,0.25,0.15]
 gradient_list = [-gradient_list[i] for i in range(len(gradient_list)-1,0,-1)]+gradient_list
-cases = testcases(gradient_list=gradient_list)
+cases = testcases(gradient_list=gradient_list,start_coord=Coord(15,20), radius=20)
 for n,i in enumerate(cases):
     print gradient_list[n],i
+    plt.charline(*i, marks=True)
+plt.render()
+
+plt2 = CharPlotter()
+plt2.regupoly(crds,marks='.')
+
+print list(plt2.line(Coord(10,10),Coord(10,20)))
+#import pdb; pdb.set_trace()
+print list(plt2.line(Coord(10,20),Coord(10,10)))
+plt2.render()
+print list(plt2.line(Coord(10,10),Coord(20,10)))
+print list(plt2.line(Coord(20,10),Coord(10,10)))
