@@ -5,15 +5,6 @@ crds = [Coord(10,10),
         Coord(20,20),
         Coord(20,10)]
 
-#plt = CharPlotter()
-# gradient_list = [1.75,1.5,1.25,1,0.75,0.5,0.25,0.15]
-# gradient_list = [-gradient_list[i] for i in range(len(gradient_list)-1,0,-1)]+gradient_list
-# cases = testcases(gradient_list=gradient_list,start_coord=Coord(15,20), radius=20)
-# for n,i in enumerate(cases):
-#     print gradient_list[n],i
-#     plt.charline(*i, marks=True)
-# plt.render()
-
 def oct_x_dom_imp(ptA,ptB):
     dx, dy = dxdy(ptA,ptB)
 
@@ -25,12 +16,12 @@ def oct_x_dom_imp(ptA,ptB):
         stopx,stopy = ptA.x,ptA.y
         dx, dy = dxdy(ptB,ptA)
 
-    M = abs(1.0*dy/dx)
-        
     yincr = 1
     if dy < 0:
         dy = -dy
         yincr = -1
+
+    M = 1.0*dy/dx       
 
     new_error = { 'skipping y': lambda current_error : current_error + M,
                   'adding to y': lambda current_error : current_error + M - 1}
@@ -61,13 +52,13 @@ def oct_y_dom_imp(ptA,ptB):
         startx,starty = ptB.x,ptB.y
         stopx,stopy = ptA.x,ptA.y
         dx, dy = dxdy(ptB,ptA)
-
-    M = abs(1.0*dx/dy)
-        
+       
     xincr = 1
     if dx < 0:
         dx = -dx
         xincr = -1
+
+    M = 1.0*dx/dy
 
     new_error = { 'skipping x': lambda current_error : current_error + M,
                   'adding to x': lambda current_error : current_error + M -1}
@@ -76,7 +67,6 @@ def oct_y_dom_imp(ptA,ptB):
     y = starty
     current_error = 0
     while dy > 0:
-        #print current_error, M, xincr, yincr
         dy -= 1      
         y += 1
         a_error =new_error['skipping x'](current_error)
@@ -119,7 +109,7 @@ print list(plt2.line(Coord(10,20),Coord(10,10)))
 # #plt2.render()
 
 plt2.regupoly(crds,marks='.')
-plt2.regupoly(plt2.create_npoly(x=30,y=20,num_of_corners=5),marks='.')
+plt2.regupoly(plt2.create_npoly(x=25,y=14,num_of_corners=5,theta=pi/2),marks='.')
 plt2.render()
 
 

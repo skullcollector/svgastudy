@@ -145,16 +145,17 @@ class CharPlotter(object):
             self.charline(points[i], points[(i+1)%number_of_pnts],marks=marks)
 
     def create_npoly(self, **kwargs):
-        x = getattr(kwargs,'x',20)
-        y = getattr(kwargs,'y',20)
-        
+        x = kwargs.get('x',20)
+        y = kwargs.get('y',20)
+        theta = kwargs.get('theta',0)
         corners = kwargs.get('num_of_corners',4)        
         radius =  kwargs.get('radius', 10)
+        import pdb; pdb.set_trace()
         angle = lambda num : num*2*pi/(1.0*corners)
         output = []
         for corner in range(corners,0,-1):
-            a = angle(corner)
-            x,y = int(round(x+radius*cos(a))), int(round(y+radius*sin(a)))
-            self.putchar(x,y,'@')
-            output += [Coord(x,y)]
+            a = angle(corner)+theta
+            xn,yn = int(round(x+radius*cos(a))), int(round(y+radius*sin(a)))
+            self.putchar(xn,yn,'@')
+            output += [Coord(xn,yn)]
         return output
