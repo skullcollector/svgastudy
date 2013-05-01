@@ -15,38 +15,9 @@
 #endif
 #include <stdio.h>
 #include <math.h>
-
-#define PI 3.14159265
-
-
-typedef struct Coord{
-  int x;
-  int y;
-};
-
-void gen_pt_with_gradient(float gradient, Coord *output, Coord *start_coord     ,  int radius   );
-void putpixel(int x,int y, int color);
-void putpixel(Coord *pt, int color);
-bool practically_nothing(int value);
-void oct_x_dom_imp(Coord *ptA, Coord *ptB,int colour);
-void oct_y_dom_imp(Coord *ptA, Coord *ptB,int colour);
-void line(Coord *ptA, Coord *ptB, int colour);
-void line (int startx, int starty, int stopx, int stopy, int colour);
-void testcases(float *gradient_list,int list_length,Coord **output, Coord *start_coord, int radius );
-void create_npoly(int num_corners, Coord **output, Coord *start_coord,int radius,float theta);
-void regupoly(Coord *points, int number_of_points);
+#include "line.h"
 
 SDL_Surface *screen;
-
-static Coord* output=NULL;
-static Coord* output2=NULL;
-static Coord coordlist[] = {  // upside down house
-  {10,10},
-  {200, 10}, 
-  {200,200},
-  {105,300},
-  {10,200}
-};
 
 void putpixel(int x,int y, int color)
 {
@@ -165,14 +136,14 @@ void oct_y_dom_imp(Coord *ptA, Coord *ptB,int colour=0xff0000) {
 
 
 
-void line (int startx, int starty, int stopx, int stopy, int colour=0xff0000) {
+void line (int startx, int starty, int stopx, int stopy, int colour) {
   Coord ptA,ptB;
   ptA.x = startx;  ptA.y = starty;
   ptB.x = stopx;  ptB.y = stopy;
   return;
 }
 
-void line0(Coord *ptA, Coord *ptB, int colour=0xff0000) {
+void line0(Coord *ptA, Coord *ptB, int colour) {
   int deltax = ptB->x - ptA->x;
   int deltay = ptB->y - ptA->y;
   
@@ -225,7 +196,7 @@ void line0(Coord *ptA, Coord *ptB, int colour=0xff0000) {
   return;
 }
 
-void line1(Coord *ptA, Coord *ptB, int colour=0xff0000) {
+void line1(Coord *ptA, Coord *ptB, int colour) {
   int deltax = ptB->x - ptA->x;
   int deltay = ptB->y - ptA->y;
   
@@ -312,7 +283,7 @@ void line1(Coord *ptA, Coord *ptB, int colour=0xff0000) {
  * DOes not use float division OR abs value calls.
  *
  */
-void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {  
+void line(Coord *ptA, Coord *ptB, int colour) {  
 
   int deltax = 0; 
   int deltay = 0;  
@@ -392,7 +363,7 @@ void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
 }
 
 
-void gen_pt_with_gradient(float gradient, Coord *output, Coord *start_coord=NULL,  int radius=100) {
+void gen_pt_with_gradient(float gradient, Coord *output, Coord *start_coord,  int radius) {
   float angle = atan(gradient);
   int x=0, y=0, startx=0, starty=0;
   if (start_coord) {
@@ -406,7 +377,7 @@ void gen_pt_with_gradient(float gradient, Coord *output, Coord *start_coord=NULL
   }
 }
 
-void testcases(float *gradient_list,int list_length,Coord **output, Coord *start_coord=NULL, int radius = 10) {
+void testcases(float *gradient_list,int list_length,Coord **output, Coord *start_coord, int radius ) {
   
   if (!gradient_list||list_length <= 0||!output) {
     return;
@@ -440,7 +411,7 @@ void regupoly(Coord *points, int number_of_points) {
   }
 }
 
-void create_npoly(int num_corners, Coord **output, Coord *start_coord=NULL,int radius=100,float theta=0) {
+void create_npoly(int num_corners, Coord **output, Coord *start_coord,int radius,float theta) {
   float angle = 0;
   int xn=0, yn=0;
 
@@ -458,6 +429,7 @@ void create_npoly(int num_corners, Coord **output, Coord *start_coord=NULL,int r
   }
 }
 
+#if 0
 void render()
 {   
   // Lock surface if needed
@@ -556,3 +528,4 @@ int main(int argc, char *argv[])
   }
   return 0;
 }
+#endif 
