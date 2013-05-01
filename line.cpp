@@ -352,6 +352,7 @@ void line(Coord *ptA, Coord *ptB, int colour) {
       deltay -= 1;
       y += 1;
       error += DX; // error+DY
+      //printf("\n\n(%d,%d)--(%d,%d)",x,y,error,error - DY);
       if (!((error << 1) < DY)) {
     	x += xincr;
     	error -= DY; // error+DY-DX
@@ -390,13 +391,13 @@ void testcases(float *gradient_list,int list_length,Coord **output, Coord *start
     startx = start_coord->x; starty = start_coord->y;
   }
   
-  printf("list length = %d",list_length);
+  //printf("list length = %d",list_length);
   
 
   Coord* start = *output;
   for (int i = 0; i < list_length;i++) {
     gen_pt_with_gradient(gradient_list[i],start++, start_coord);
-    printf("\n\nCoord x %d, y %d",start[i].x,start[i].y);
+    //printf("\n\nCoord x %d, y %d",start[i].x,start[i].y);
   }
 }
 
@@ -422,7 +423,7 @@ void create_npoly(int num_corners, Coord **output, Coord *start_coord,int radius
   
   Coord *start = *output;
   for (int corner_number = 0; corner_number < num_corners; corner_number++) {
-    angle = corner_number * 2 * PI/num_corners+theta;
+    angle = (corner_number * 2 * PI/num_corners)+theta;
     start->x = int(x+radius*cos(angle));
     start->y = int(y+radius*sin(angle));
     start++;
@@ -430,7 +431,7 @@ void create_npoly(int num_corners, Coord **output, Coord *start_coord,int radius
 }
 
 #if 0
-void render()
+/* void render()
 {   
   // Lock surface if needed
   if (SDL_MUSTLOCK(screen)) 
@@ -527,5 +528,5 @@ int main(int argc, char *argv[])
     }
   }
   return 0;
-}
+  }*/
 #endif 

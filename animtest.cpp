@@ -23,12 +23,18 @@
 
 //SDL_Surface *screen;
 
+//The surfaces that will be used
+SDL_Surface *background = NULL;
+
+
 const int C_WIDTH = 800;
 const int C_HEIGHT = 600;
 const int C_BPP = 32;
 
 static Coord* output=NULL;
 static Coord* output2=NULL;
+static Coord* output3=NULL;
+static Coord* output4=NULL;
 static Coord coordlist[] = {  // upside down house
   {10,10},
   {200, 10}, 
@@ -38,12 +44,14 @@ static Coord coordlist[] = {  // upside down house
 };
 
 
-void render()
+void render(unsigned int counter)
 {   
   // Lock surface if needed
   if (SDL_MUSTLOCK(screen)) 
     if (SDL_LockSurface(screen) < 0) 
       return;
+
+  SDL_FillRect(screen, NULL, 0x000000);
 
   // Ask SDL for the time in milliseconds
   int tick = SDL_GetTicks();
@@ -70,13 +78,27 @@ void render()
     line(&startpoint, &output[i]);
   }
 
-  int N = 5;
+  int N = 6;
   if (!output2) { // render gets called a lot, let's not eat all the memory
     output2 = (Coord*)malloc(N*sizeof(Coord));;
-    create_npoly(N,&output2,&startpoint);
   }
-
+  create_npoly(N,&output2,&startpoint,200,PI/100*counter);
   regupoly(output2,N);
+
+  int N2 = 5;
+  if (!output3) { // render gets called a lot, let's not eat all the memory
+    output3 = (Coord*)malloc(N2*sizeof(Coord));;
+  }
+  create_npoly(N2,&output3,&startpoint,100,-PI/100*counter);
+  regupoly(output3,N2);
+
+  int N3 = 7;
+  if (!output4) { // render gets called a lot, let's not eat all the memory
+    output4 = (Coord*)malloc(N3*sizeof(Coord));;
+  }
+  create_npoly(N3,&output4,&startpoint,250,-PI/100*counter);
+  regupoly(output4,N3);
+
   // Unlock if needed
   if (SDL_MUSTLOCK(screen)) 
     SDL_UnlockSurface(screen);
@@ -85,6 +107,7 @@ void render()
   SDL_UpdateRect(screen, 0, 0, C_WIDTH, C_HEIGHT);    
 }
 
+static unsigned int counter = 0;
 
 // Entry point
 int main(int argc, char *argv[])
@@ -95,7 +118,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
     exit(1);
   }
-  printf(" size %d ", sizeof(coordlist)/sizeof(Coord));
+
   // Register SDL_Quit to be called at exit; makes sure things are
   // cleaned up when we quit.
   atexit(SDL_Quit);
@@ -113,8 +136,9 @@ int main(int argc, char *argv[])
   // Main loop: loop forever.
   while (1)
   {
+    counter = (counter+1);
     // Render stuff
-    render();
+    render(counter);
 
     // Poll for events, and handle the ones we care about.
     SDL_Event event;
