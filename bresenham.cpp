@@ -341,9 +341,50 @@ void testcases(float *gradient_list,int list_length,Coord **output, Coord *start
   }
 }
 
+void regupoly(Coord *points, int number_of_points) {
 
+    // def regupoly(self,points,marks=None):
+    //     number_of_pnts = len(points)
+    //     for i in range(0,number_of_pnts):
+    //         self.charline(points[i], points[(i+1)%number_of_pnts],marks=marks)
+  for (int i =0 ; i < number_of_points; i++) {
+    line(&points[i],&points[(i+1)%number_of_points]);
+  }
+}
+    // def create_npoly(self, **kwargs):
+    //     x = kwargs.get('x',20)
+    //     y = kwargs.get('y',20)
+    //     theta = kwargs.get('theta',0)
+    //     corners = kwargs.get('num_of_corners',4)        
+    //     radius =  kwargs.get('radius', 10)
+    //     angle = lambda num : num*2*pi/(1.0*corners)
+    //     output = []
+    //     for corner in range(corners,0,-1):
+    //         a = angle(corner)+theta
+    //         xn,yn = int(round(x+radius*cos(a))), int(round(y+radius*sin(a)))
+    //         self.putchar(xn,yn,'@')
+    //         output += [Coord(xn,yn)]
+    //     return output
 
+void create_npoly(int num_corners, Coord **output, Coord *start_coord=NULL,int radius=100,float theta=0) {
+  float angle = 0;
+  int xn=0, yn=0;
+
+  int x=0, y=0;
+  if (start_coord) {
+    x = start_coord->x; y = start_coord->y;
+  }
+  
+  Coord *start = *output;
+  for (int corner_number = 0; corner_number < num_corners; corner_number++) {
+    angle = corner_number * 2 * PI/num_corners+theta;
+    start->x = int(x+radius*cos(angle));
+    start->y = int(y+radius*sin(angle));
+    start++;
+  }
+}
 static Coord* output=NULL;
+static Coord* output2=NULL;
 
 void render()
 {   
@@ -362,17 +403,8 @@ void render()
   
   int i0=0, i1=0;
   int listlen = sizeof(coordlist)/sizeof(Coord);
-  #if 1
-  for (int i = 0; i  <  listlen; i++){
-    i0 = i % listlen;
-    i1 = (i+1)%listlen;
-    //line(coordlist[i0].x, coordlist[i0].y, coordlist[i1].x, coordlist[i1].y);
-    line(&coordlist[i0], &coordlist[i1]);
-    putpixel(coordlist[i0].x, coordlist[i0].y, 0xffff00);
-    putpixel(coordlist[i1].x, coordlist[i1].y, colourstart);
-    //printf("%d, %d,:: %d %d",coordlist[i0].x, coordlist[i0].y, coordlist[i1].x, coordlist[i1].y);
-  }
-  #endif
+
+  regupoly(coordlist, listlen);
 
   float data[] = {1,0.75,0.5,0.3,0.25,0.15,0.05,0,-1};
   Coord startpoint = {300,300};
@@ -385,7 +417,19 @@ void render()
   for(int i = 0; i < float_length; i++){
     line(&startpoint, &output[i]);
   }
-  
+
+  int N = 8;
+
+  if (!output2) { // render gets called a lot, let's not eat all the memory
+    output2 = (Coord*)malloc(N*sizeof(Coord));;
+    create_npoly(N,&output2,&startpoint);
+    for (int i = 0; i< N; i++) {
+      printf("\n[%d %d]\n",output2[i].x,output2[i].y);
+    }
+
+  }
+
+  regupoly(output2,N);
   // Unlock if needed
   if (SDL_MUSTLOCK(screen)) 
     SDL_UnlockSurface(screen);
