@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#define PI 3.14159265
+
 SDL_Surface *screen;
 
 typedef struct Coord{
@@ -19,7 +21,7 @@ typedef struct Coord{
   int y;
 };
 
-
+void gen_pt_with_gradient(float gradient, Coord *output, Coord *start_coord     ,  int radius   );
 
 void putpixel(int x,int y, int color)
 {
@@ -61,6 +63,7 @@ void oct_x_dom_imp(Coord *ptA, Coord *ptB,int colour=0xff0000) {
     deltax = -deltax;
     deltay = -deltay;
   }
+
   int y_increment = 1;
   if (deltay < 0) {
     deltay = -deltay;
@@ -130,7 +133,7 @@ void oct_y_dom_imp(Coord *ptA, Coord *ptB,int colour=0xff0000) {
     deltay -= 1;
     y += 1;
     error += DX; // error+DX
-    if ((error << 1) < DY) {   /// ERROR ?
+    if ((error << 1) < DY) {   /// MISTAKE? DX Rather?
       // doo nothing...      
     } else {
       x += x_increment;
@@ -231,8 +234,6 @@ void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
       deltay = -deltay;
       startx = ptB->x;
       starty = ptB->y;
-      // stopx = ptA->x;
-      // stopy = ptA->y;
     }
 
     int y = starty;
@@ -270,21 +271,7 @@ void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
       x += 1;
     }    
     return;
-  }
-        
-
-    //     if abs(dx) >= abs(dy):
-    //         if not oct_x_dom:
-    //             raise Exception("X dominant Line octants not implemented")
-
-    //         for pt in oct_x_dom(ptA,ptB):
-    //             yield pt
-    //     else:
-    //         if not oct_y_dom:
-    //             raise Exception("Y dominant Line octants not implemented")
-                
-    //         for pt in oct_y_dom(ptA,ptB):
-    //             yield pt
+  }      
 
   int dx = deltax, dy= deltay;
   dx = dx < 0 ? -dx : dx;
@@ -294,108 +281,9 @@ void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
   } else {
     oct_y_dom_imp(ptA,ptB,colour);
   }
-
-    // if not practically_nothing(dy) and not practically_nothing(dx):
-    //     dx,dy = dxdy(ptA,ptB)
-        
-    //     startx, starty = ptA.x,ptA.y
-    //     stopx, stopy = ptB.x,ptB.y
-
-    //     points = []
-    //     if abs(dx) >= abs(dy):
-    //         if not oct_x_dom:
-    //             raise Exception("X dominant Line octants not implemented")
-
-    //         for pt in oct_x_dom(ptA,ptB):
-    //             yield pt
-    //     else:
-    //         if not oct_y_dom:
-    //             raise Exception("Y dominant Line octants not implemented")
-                
-    //         for pt in oct_y_dom(ptA,ptB):
-    //             yield pt
   
   return;
 }
-/*
-
- function line(x0, x1, y0, y1)
-     int deltax := x1 - x0
-     int deltay := y1 - y0
-     real error := 0
-     real deltaerr := abs (deltay / deltax)    // Assume deltax != 0 (line is not vertical),
-           // note that this division needs to be done in a way that preserves the fractional part
-     int y := y0
-     for x from x0 to x1
-         plot(x,y)
-         error := error + deltaerr
-         if error ≥ 0.5 then
-             y := y + 1
-             error := error - 1.0
-
-
-
-def line_skeleton(ptA,ptB,oct_x_dom=None,oct_y_dom=None):
-    '''
-    assumptions:
-    x is only increasing.
-    '''
-    dx,dy = dxdy(ptA,ptB)
-
-    startx, starty = ptA.x,ptA.y
-    stopx, stopy = ptB.x,ptB.y
-
-    if practically_nothing(dx):
-        y = starty
-        while dy > 0:
-            dy -= 1
-            yield (startx, y)
-            y += 1
-            
-        while dy < 0:
-            dy += 1
-            yield (startx, y)
-            y -= 1
-        
-            
-    if practically_nothing(dy):
-        x = startx
-        while dx > 0:
-            dx -= 1
-            yield (x, starty)
-            x += 1
-            
-        while dx < 0:
-            dx += 1
-            yield (x, starty)
-            x -= 1
-
-    if not practically_nothing(dy) and not practically_nothing(dx):
-
-        #import pdb; pdb.set_trace()
-        dx,dy = dxdy(ptA,ptB)
-        
-        startx, starty = ptA.x,ptA.y
-        stopx, stopy = ptB.x,ptB.y
-
-        points = []
-        if abs(dx) >= abs(dy):
-            if not oct_x_dom:
-                raise Exception("X dominant Line octants not implemented")
-
-            for pt in oct_x_dom(ptA,ptB):
-                yield pt
-        else:
-            if not oct_y_dom:
-                raise Exception("Y dominant Line octants not implemented")
-                
-            for pt in oct_y_dom(ptA,ptB):
-                yield pt
- */
-
-
-
-
 
 static Coord coordlist[] = { 
   {10,10},
@@ -405,12 +293,57 @@ static Coord coordlist[] = {
   {10,200}
 };
 
-// static Coord coordlist[] = { 
-//   {10,10},
-//   {200, 100}, 
-//   {400,10},
-//   {500,200}
-// };
+// need atan, round, cos, sin
+
+// def gen_pts_with_gradient(gradient,start_coord=Coord(0,0),radius=10):
+//     # (Ystop-Ystart)/(Xstop-Xstart) = (y-Ystart)/(x-Xstart)
+//     # y = 1.0*(Ystop-Ystart)/(Xstop-Xstart)*(x-Xstart) + Ystart
+//     #size = gradient
+//     angle = atan(gradient)
+//     print 180*angle/pi, gradient,'...'
+//     x,y = start_coord.x+int(round(radius*cos(angle))),start_coord.y+int(round(radius*sin(angle)))
+//     end_coord = Coord(x,y)
+//     return [start_coord, end_coord]
+void gen_pt_with_gradient(float gradient, Coord *output, Coord *start_coord=NULL,  int radius=100) {
+  float angle = atan(gradient);
+  int x=0, y=0, startx=0, starty=0;
+  if (start_coord) {
+    startx = start_coord->x; starty = start_coord->y;
+  }
+  x = startx + radius*cos(angle);
+  y = starty + radius*sin(angle);
+  if (output) {
+    output->x = x;
+    output->y = y;
+  }
+}
+
+void testcases(float *gradient_list,int list_length,Coord **output, Coord *start_coord=NULL, int radius = 10) {
+  
+  if (!gradient_list||list_length <= 0||!output) {
+    return;
+  } else if (!*output) {
+    return;
+  }
+
+  int x=0, y=0, startx=0, starty=0;
+  if (start_coord) {
+    startx = start_coord->x; starty = start_coord->y;
+  }
+  
+  printf("list length = %d",list_length);
+  
+
+  Coord* start = *output;
+  for (int i = 0; i < list_length;i++) {
+    gen_pt_with_gradient(gradient_list[i],start++, start_coord);
+    printf("\n\nCoord x %d, y %d",start[i].x,start[i].y);
+  }
+}
+
+
+
+static Coord* output=NULL;
 
 void render()
 {   
@@ -429,6 +362,7 @@ void render()
   
   int i0=0, i1=0;
   int listlen = sizeof(coordlist)/sizeof(Coord);
+  #if 1
   for (int i = 0; i  <  listlen; i++){
     i0 = i % listlen;
     i1 = (i+1)%listlen;
@@ -438,7 +372,19 @@ void render()
     putpixel(coordlist[i1].x, coordlist[i1].y, colourstart);
     //printf("%d, %d,:: %d %d",coordlist[i0].x, coordlist[i0].y, coordlist[i1].x, coordlist[i1].y);
   }
-  
+  #endif
+
+  float data[] = {1,0.75,0.5,0.3,0.25,0.15,0.05,0,-1};
+  Coord startpoint = {300,300};
+  int float_length = sizeof(data)/sizeof(float);
+  if (!output) { // render gets called a lot, let's not eat all the memory
+    output = (Coord*)malloc(float_length*sizeof(Coord));;
+  }
+
+  testcases(data,float_length,&output, &startpoint);
+  for(int i = 0; i < float_length; i++){
+    line(&startpoint, &output[i]);
+  }
   
   // Unlock if needed
   if (SDL_MUSTLOCK(screen)) 
