@@ -3,6 +3,10 @@
 // Call with  g++ test.c -o test $(sdl-config --libs --cflags)
 // For SDL2 use sdl2-config... below wont work with it though, UpdateRect and SetVideoMode are shunned in SDL 2.0 land
 //
+// Have a few versions of the line code in here. Unused line methods are marked line0, line1 etc.
+// When running you shoudl see an upside house, a regular polygon and a few lines or various gradients.
+//
+//
 #include <stdlib.h>
 #if defined(_MSC_VER)
 #include "SDL.h"
@@ -65,10 +69,7 @@ void putpixel(Coord *pt, int color)
 bool practically_nothing(int value) { 
   const float some_value = 0.1;
   value = value < 0 ? -value : value;
-  if (value < some_value) {
-    return true;
-  }
-  return false;
+  return (value < some_value);
 };
 
 void oct_x_dom_imp(Coord *ptA, Coord *ptB,int colour=0xff0000) {
@@ -171,12 +172,14 @@ void line (int startx, int starty, int stopx, int stopy, int colour=0xff0000) {
   return;
 }
 
-void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
+void line0(Coord *ptA, Coord *ptB, int colour=0xff0000) {
   int deltax = ptB->x - ptA->x;
   int deltay = ptB->y - ptA->y;
   
   int startx = ptA->x;
   int starty = ptA->y;
+
+  // Vertical lines..
   if (practically_nothing(deltax)) {
     if (deltay < 0) {
       deltay = -deltay;
@@ -192,19 +195,8 @@ void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
     }
     return;
   }
-
-    // if practically_nothing(dy):
-    //     x = startx
-    //     while dx > 0:
-    //         dx -= 1
-    //         yield (x, starty)
-    //         x += 1
-            
-    //     while dx < 0:
-    //         dx += 1
-    //         yield (x, starty)
-    //         x -= 1
-
+  
+  // Horizontal lines..
   if (practically_nothing(deltay)) {
     if (deltax < 0) {
       deltax = -deltax;
@@ -220,7 +212,7 @@ void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
     }    
     return;
   }      
-
+  // NO EDIT
   int dx = deltax, dy= deltay;
   dx = dx < 0 ? -dx : dx;
   dy = dy < 0 ? -dy : dy;
@@ -233,18 +225,173 @@ void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
   return;
 }
 
+void line1(Coord *ptA, Coord *ptB, int colour=0xff0000) {
+  int deltax = ptB->x - ptA->x;
+  int deltay = ptB->y - ptA->y;
+  
+  int startx = ptA->x;
+  int starty = ptA->y;
+  int stopx = ptB->x;
+  int stopy = ptB->y;
 
-// need atan, round, cos, sin
+  
+  if (abs(deltax) >= abs(deltay)) {
+    #if 0
+    oct_x_dom_imp(ptA,ptB,0x00ffff);
+    #else
 
-// def gen_pts_with_gradient(gradient,start_coord=Coord(0,0),radius=10):
-//     # (Ystop-Ystart)/(Xstop-Xstart) = (y-Ystart)/(x-Xstart)
-//     # y = 1.0*(Ystop-Ystart)/(Xstop-Xstart)*(x-Xstart) + Ystart
-//     #size = gradient
-//     angle = atan(gradient)
-//     print 180*angle/pi, gradient,'...'
-//     x,y = start_coord.x+int(round(radius*cos(angle))),start_coord.y+int(round(radius*sin(angle)))
-//     end_coord = Coord(x,y)
-//     return [start_coord, end_coord]
+    startx = ptA->x; starty = ptA->y;
+    stopx = ptB->x;  stopy = ptB->y;
+
+    if (deltax < 0 ) {
+      deltax = -deltax;
+      deltay = -deltay;
+      startx = ptB->x; starty = ptB->y;
+      stopx = ptA->x; stopy = ptA->y;    
+    }
+    
+    int y_increment = 1;
+    if (deltay < 0) {
+      y_increment = -1;
+      deltay = -deltay;
+    }
+
+    int DX = deltax, DY = deltay;
+    int x = startx, y = starty, error =0;
+    while(deltax > 0) {
+      putpixel(x,y,colour);
+      deltax -= 1;
+      x += 1;
+      error += DY; // error+DY
+      if (!((error << 1) < DX)) {
+    	y += y_increment;
+    	error -= DX; // error+DY-DX
+      }
+    }
+    #endif
+  } else {
+    #if 0
+    oct_y_dom_imp(ptA,ptB,colour);
+    #else
+    startx = ptA->x; starty = ptA->y;
+    stopx = ptB->x;  stopy = ptB->y;
+
+    if (deltay < 0 ) {
+      deltax = -deltax;
+      deltay = -deltay;
+      startx = ptB->x; starty = ptB->y;
+      stopx = ptA->x; stopy = ptA->y;    
+    }
+    
+    int x_increment = 1;
+    if (deltax < 0) {
+      x_increment = -1;
+      deltax = -deltax;
+    }
+
+    int DX = deltax, DY = deltay;
+    int x = startx, y = starty, error =0;
+    while(deltay > 0) {
+      putpixel(x,y,colour);
+      deltay -= 1;
+      y += 1;
+      error += DX; // error+DY
+      if (!((error << 1) < DY)) {
+    	x += x_increment;
+    	error -= DY; // error+DY-DX
+      }
+    }
+  #endif
+  }
+
+  return;
+}
+/**
+ *
+ * Optimized based on above code and M Abrash's book's methods
+ * DOes not use float division OR abs value calls.
+ *
+ */
+void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {  
+
+  int deltax = 0; 
+  int deltay = 0;  
+  int startx = 0; 
+  int starty = 0; 
+  int stopx = 0;
+  int stopy = 0;
+  
+  // Make sure one delta is > 0, pick deltaY
+  if (ptA->y < ptB->y) {
+    startx = ptA->x; starty = ptA->y;
+    stopx = ptB->x; stopy = ptB->y;
+  }
+  else {
+    startx = ptB->x; starty = ptB->y;
+    stopx = ptA->x; stopy = ptA->y;
+  }
+
+  // will be > 0 !
+  deltax = stopx - startx;
+  deltay = stopy - starty; 
+
+  // This means xincr will be the direction indicator.
+  bool x_dominant = false;
+  bool y_dominant = false;
+  int xincr = 1;
+
+  if (deltax > 0) {
+    if(deltax > deltay) {
+      x_dominant = true;
+    } else {
+      y_dominant = true;
+    }
+  } else {
+    deltax = -deltax;
+    xincr = -1;
+    if(deltax > deltay) {
+      x_dominant = true;
+    } else {
+      y_dominant = true;
+    }
+  }
+
+  int x=startx, y = starty, error =0;
+  int DX = deltax, DY = deltay;
+
+  // I dont want to make extra func calls if I can help it. 
+  // Using flags instead.
+  if (x_dominant) {  // for octants where abs(deltaX) > abs(deltaY); gradients < 1
+    while(deltax > 0) {
+      putpixel(x,y,colour);
+      deltax -= 1;
+      x += xincr;
+      error += DY; // error+DY
+      if (!((error << 1) < DX)) {
+    	y += 1;
+    	error -= DX; // error+DY-DX
+      }
+    }
+    return;
+  }
+
+  if (y_dominant) { // for octants where abs(deltaX) <= abs(deltaY); gradients >= 1
+    while(deltay > 0) {
+      putpixel(x,y,colour);
+      deltay -= 1;
+      y += 1;
+      error += DX; // error+DY
+      if (!((error << 1) < DY)) {
+    	x += xincr;
+    	error -= DY; // error+DY-DX
+      }
+    } 
+    return;
+  }
+  return;
+}
+
+
 void gen_pt_with_gradient(float gradient, Coord *output, Coord *start_coord=NULL,  int radius=100) {
   float angle = atan(gradient);
   int x=0, y=0, startx=0, starty=0;
@@ -343,7 +490,7 @@ void render()
     line(&startpoint, &output[i]);
   }
 
-  int N = 8;
+  int N = 5;
   if (!output2) { // render gets called a lot, let's not eat all the memory
     output2 = (Coord*)malloc(N*sizeof(Coord));;
     create_npoly(N,&output2,&startpoint);
