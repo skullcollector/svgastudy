@@ -302,9 +302,8 @@ void line(Coord *ptA, Coord *ptB, int colour) {
     stopx = ptA->x; stopy = ptA->y;
   }
 
-  // will be > 0 !
   deltax = stopx - startx;
-  deltay = stopy - starty; 
+  deltay = stopy - starty;   // deltaY will now be > 0 !
 
   // This means xincr will be the direction indicator.
   bool x_dominant = false;
