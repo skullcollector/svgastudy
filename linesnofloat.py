@@ -83,6 +83,11 @@ def oct_y_dom_imp_float(ptA,ptB):
 
 
 def oct_x_dom_imp(ptA,ptB):
+    '''
+    Redefinition:
+    current_error = DY*current_error (from float implementation)
+    '''
+
     dx, dy = dxdy(ptA,ptB)
 
     startx,starty = ptA.x,ptA.y
@@ -115,7 +120,7 @@ def oct_x_dom_imp(ptA,ptB):
         x += 1
         a_error =new_error['skipping y'](current_error)
         if 2*a_error < DX:
-            current_error = new_error['skipping y'](current_error)
+            current_error = a_error #new_error['skipping y'](current_error)
         else:
             y = y + yincr
             current_error = new_error['adding to y'](current_error)
@@ -125,6 +130,7 @@ def oct_x_dom_imp(ptA,ptB):
 
 def oct_y_dom_imp(ptA,ptB):
     '''
+    Redefinition:
     current_error = DX*current_error (from float implementation)
     '''
     dx, dy = dxdy(ptA,ptB)
@@ -156,7 +162,7 @@ def oct_y_dom_imp(ptA,ptB):
         y += 1
         a_error =new_error['skipping x'](current_error)
         if 2*a_error < DX:   # was a_error < 0.5 but multiplied with 2 
-            current_error = new_error['skipping x'](current_error)
+            current_error = a_error #new_error['skipping x'](current_error)
         else:
             x = x + xincr
             current_error = new_error['adding to x'](current_error)
