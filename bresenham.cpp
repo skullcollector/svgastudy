@@ -48,6 +48,156 @@ bool practically_nothing(int value) {
   return false;
 };
 
+void oct_x_dom_imp(Coord *ptA, Coord *ptB,int colour=0xff0000) {
+  int deltax = ptB->x - ptA->x;
+  int deltay = ptB->y - ptA->y;
+  
+  int startx = 0, starty =0, stopx =0, stopy=0;
+  startx = ptA->x; starty = ptA->y;
+  stopx = ptB->x;  stopy = ptB->y;
+  if (deltax < 0) {
+    startx = ptB->x; starty = ptB->y;
+    stopx = ptA->x; stopy = ptA->y;
+    deltax = -deltax;
+    deltay = -deltay;
+  }
+  int y_increment = 1;
+  if (deltay < 0) {
+    deltay = -deltay;
+    y_increment = -1;
+  }
+
+  int DX=deltax, DY=deltay;
+  // error error+DY and error+DY-DX
+  //     x = startx
+  //     y = starty
+  //     current_error = 0
+  int x = startx, y = starty, error=0;
+  while(deltax > 0) {
+    putpixel(x,y,colour);
+    deltax -= 1;
+    x += 1;
+    error += DY; // error+DY
+    if ((error << 1) < DX) {
+      // doo nothing...      
+    } else {
+      y += y_increment;
+      error -= DX; // error+DY-DX
+    }
+  }
+//     while dx > 0:
+//         dx -= 1      
+//         x += 1
+//         a_error =new_error['skipping y'](current_error)
+//         if 2*a_error < DX:
+//             current_error = a_error #new_error['skipping y'](current_error)
+//         else:
+//             y = y + yincr
+//             current_error = new_error['adding to y'](current_error)
+
+//         yield x,y
+  return;
+}
+
+
+void oct_y_dom_imp(Coord *ptA, Coord *ptB,int colour=0xff0000) {
+  int deltax = ptB->x - ptA->x;
+  int deltay = ptB->y - ptA->y;
+  
+  int startx = 0, starty =0, stopx =0, stopy=0;
+  startx = ptA->x; starty = ptA->y;
+  stopx = ptB->x;  stopy = ptB->y;
+  if (deltay < 0) {
+    startx = ptB->x; starty = ptB->y;
+    stopx = ptA->x; stopy = ptA->y;
+    deltax = -deltax;
+    deltay = -deltay;
+  }
+  int x_increment = 1;
+  if (deltax < 0) {
+    deltax = -deltax;
+    x_increment = -1;
+  }
+
+  int DX=deltax, DY=deltay;
+  // error error+DY and error+DY-DX
+  //     x = startx
+  //     y = starty
+  //     current_error = 0
+  int x = startx, y = starty, error=0;
+  while(deltay > 0) {
+    putpixel(x,y,colour);
+    deltay -= 1;
+    y += 1;
+    error += DX; // error+DX
+    if ((error << 1) < DY) {   /// ERROR ?
+      // doo nothing...      
+    } else {
+      x += x_increment;
+      error -= DY; // error+DX-DY
+    }
+  }
+//     while dx > 0:
+//         dx -= 1      
+//         x += 1
+//         a_error =new_error['skipping y'](current_error)
+//         if 2*a_error < DX:
+//             current_error = a_error #new_error['skipping y'](current_error)
+//         else:
+//             y = y + yincr
+//             current_error = new_error['adding to y'](current_error)
+
+//         yield x,y
+  return;
+}
+
+// def oct_x_dom_imp(ptA,ptB):
+//     '''
+//     Redefinition:
+//     current_error = DY*current_error (from float implementation)
+//     '''
+
+//     dx, dy = dxdy(ptA,ptB)
+
+//     startx,starty = ptA.x,ptA.y
+//     stopx,stopy = ptB.x,ptB.y
+
+//     if dx < 0:
+//         startx,starty = ptB.x,ptB.y
+//         stopx,stopy = ptA.x,ptA.y
+//         dx, dy = dxdy(ptB,ptA)
+
+//     yincr = 1
+//     if dy < 0:
+//         dy = -dy
+//         yincr = -1
+
+//     #M = 1.0*dy/dx       
+//     DX,DY = dx, dy
+
+//     # new_error = { 'skipping y': lambda current_error : current_error + M,
+//     #               'adding to y': lambda current_error : current_error + M - 1}
+
+//     new_error = { 'skipping y': lambda current_error : current_error + DY,
+//                   'adding to y': lambda current_error : current_error + DY - DX}
+
+//     x = startx
+//     y = starty
+//     current_error = 0
+//     while dx > 0:
+//         dx -= 1      
+//         x += 1
+//         a_error =new_error['skipping y'](current_error)
+//         if 2*a_error < DX:
+//             current_error = a_error #new_error['skipping y'](current_error)
+//         else:
+//             y = y + yincr
+//             current_error = new_error['adding to y'](current_error)
+
+//         yield x,y
+
+
+
 void line(Coord *ptA, Coord *ptB, int colour);
 void line (int startx, int starty, int stopx, int stopy, int colour);
 
@@ -57,6 +207,7 @@ void line (int startx, int starty, int stopx, int stopy, int colour=0xff0000) {
   ptB.x = stopx;  ptB.y = stopy;
   return;
 }
+
 
 void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
   int deltax = ptB->x - ptA->x;
@@ -110,9 +261,6 @@ void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
       deltax = -deltax;
       startx = ptB->x;
       starty = ptB->y;
-      // stopx = ptA->x;
-      // stopy = ptA->y;
-
     }
 
     int x = startx;
@@ -124,7 +272,48 @@ void line(Coord *ptA, Coord *ptB, int colour=0xff0000) {
     return;
   }
         
-            
+
+    //     if abs(dx) >= abs(dy):
+    //         if not oct_x_dom:
+    //             raise Exception("X dominant Line octants not implemented")
+
+    //         for pt in oct_x_dom(ptA,ptB):
+    //             yield pt
+    //     else:
+    //         if not oct_y_dom:
+    //             raise Exception("Y dominant Line octants not implemented")
+                
+    //         for pt in oct_y_dom(ptA,ptB):
+    //             yield pt
+
+  int dx = deltax, dy= deltay;
+  dx = dx < 0 ? -dx : dx;
+  dy = dy < 0 ? -dy : dy;
+  if (dx > dy) {
+    oct_x_dom_imp(ptA,ptB,colour);
+  } else {
+    oct_y_dom_imp(ptA,ptB,colour);
+  }
+
+    // if not practically_nothing(dy) and not practically_nothing(dx):
+    //     dx,dy = dxdy(ptA,ptB)
+        
+    //     startx, starty = ptA.x,ptA.y
+    //     stopx, stopy = ptB.x,ptB.y
+
+    //     points = []
+    //     if abs(dx) >= abs(dy):
+    //         if not oct_x_dom:
+    //             raise Exception("X dominant Line octants not implemented")
+
+    //         for pt in oct_x_dom(ptA,ptB):
+    //             yield pt
+    //     else:
+    //         if not oct_y_dom:
+    //             raise Exception("Y dominant Line octants not implemented")
+                
+    //         for pt in oct_y_dom(ptA,ptB):
+    //             yield pt
   
   return;
 }
@@ -212,6 +401,7 @@ static Coord coordlist[] = {
   {10,10},
   {200, 10}, 
   {200,200},
+  {105,300},
   {10,200}
 };
 
