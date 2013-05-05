@@ -1,6 +1,22 @@
 from math import pi, sin, cos, sqrt, atan
 
-class Coord:
+
+
+def forinstance(inputfunction, *args,**kwargs):
+    '''
+    decorator to make sure we're (sub/add/..)ing typeX to typeX
+    '''
+    def fn(self, other):
+        if isinstance(other,self.__class__):
+            return inputfunction(self, other, *args, **kwargs)
+        else:
+            raise Exception("I cant do this with types %s and %s"%(self.__class__,type(other)))
+    return fn
+
+class Coord(object):
+    '''
+    Immutable
+    '''
     x = 0;
     y = 0;
     def __init__(self, x,y):
@@ -12,6 +28,20 @@ class Coord:
     def __repr__(self):
         return "<%d,%d>"%(self.x, self.y)
 
+    def add(self, x = 0, y = 0):
+        return Coord(self.x+x, self.y+y)
+
+    @forinstance
+    def __add__(self, other):
+        return self.add(x=other.x, y=other.y)
+
+    def sub(self, x= 0, y = 0):
+        return Coord(self.x-x, self.y-y)
+
+    @forinstance
+    def __sub__(self, other):
+        return self.sub(x=other.x, y=other.y)
+        
 dxdy = lambda start,stop : (stop.x - start.x, stop.y - start.y)
 close_enough = lambda actualpnt, calcpnt: sqrt((actualpnt.x-calcpnt.x)**2 + (actualpnt.y-calcpnt.y)**2) < 2
 practically_nothing = lambda val : abs(val) < 0.1
