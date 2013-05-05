@@ -1,92 +1,5 @@
 from lineutil import *
 
-def oct_x_dom_imp(ptA,ptB):
-    '''
-    Redefinition:
-    current_error = DY*current_error (from float implementation)
-    '''
-
-    dx, dy = dxdy(ptA,ptB)
-
-    startx,starty = ptA.x,ptA.y
-    stopx,stopy = ptB.x,ptB.y
-
-    if dx < 0:
-        startx,starty = ptB.x,ptB.y
-        stopx,stopy = ptA.x,ptA.y
-        dx, dy = dxdy(ptB,ptA)
-
-    yincr = 1
-    if dy < 0:
-        dy = -dy
-        yincr = -1
-
-    #M = 1.0*dy/dx       
-    DX,DY = dx, dy
-
-    # new_error = { 'skipping y': lambda current_error : current_error + M,
-    #               'adding to y': lambda current_error : current_error + M - 1}
-
-    new_error = { 'skipping y': lambda current_error : current_error + DY,
-                  'adding to y': lambda current_error : current_error + DY - DX}
-
-    x = startx
-    y = starty
-    current_error = 0
-    while dx > 0:
-        dx -= 1      
-        x += 1
-        a_error =new_error['skipping y'](current_error)
-        if 2*a_error < DX:
-            current_error = a_error #new_error['skipping y'](current_error)
-        else:
-            y = y + yincr
-            current_error = new_error['adding to y'](current_error)
-
-        yield x,y
-
-
-def oct_y_dom_imp(ptA,ptB):
-    '''
-    Redefinition:
-    current_error = DX*current_error (from float implementation)
-    '''
-    dx, dy = dxdy(ptA,ptB)
-
-    startx,starty = ptA.x,ptA.y
-    stopx,stopy = ptB.x,ptB.y
-
-    if dy < 0:
-        startx,starty = ptB.x,ptB.y
-        stopx,stopy = ptA.x,ptA.y
-        dx, dy = dxdy(ptB,ptA)
-       
-    xincr = 1
-    if dx < 0:
-        dx = -dx
-        xincr = -1
-
-    #M = 1.0*dx/dy
-    DX, DY = dx, dy
-
-    new_error = { 'skipping x': lambda current_error : current_error + DX,
-                  'adding to x': lambda current_error : current_error + DX -DY}
-        
-    x = startx
-    y = starty
-    current_error = 0
-    while dy > 0:
-        dy -= 1      
-        y += 1
-        a_error =new_error['skipping x'](current_error)
-        if 2*a_error < DX:   # was a_error < 0.5 but multiplied with 2 
-            current_error = a_error #new_error['skipping x'](current_error)
-        else:
-            x = x + xincr
-            current_error = new_error['adding to x'](current_error)
-
-        yield x,y
-
 # assuming poly vertices are in order..
 # square
 poly1 = [Coord(0,0)]
@@ -109,7 +22,10 @@ add_after_last_point(poly4,-4,2)
 add_after_last_point(poly4,-6,10)
 add_after_last_point(poly4,10,10)
 add_after_last_point(poly4,10,-10)
+add_after_last_point(poly4,-5,-8)
 
+circdec = lambda i,length: (length+(i-1))%length
+circinc = lambda i,length: (i+1)%length
 def vertirate(vertices,backward=False):
     '''
     should use itertools.cycle, but want to get into C mode just now..
@@ -118,15 +34,17 @@ def vertirate(vertices,backward=False):
         print v.next()
 
     '''
+    global circdec, circinc
+
     length = len(vertices)
     i = 0 if not backward else length-1
     while True:
         
         yield vertices[i]
         if backward:
-            i = (length+(i-1))%length    
+            i = circdec(i,length)
         else:
-            i = (i+1)%length
+            i = circinc(i,length)
         
 
 def find_y_bounds(vertices):
@@ -156,12 +74,88 @@ print find_y_bounds(poly4)
 print poly4
 
 
-def fill_convex_poly(vertices):
-    miny_maxy = find_y_bounds(vertices)
-    if not miny_maxy:
+def fill_convex_poly(vertices,ch=None):
+    global circinc,circdec
+    length = len(vertices)
+    if length == 0:
         return None
-    miny,maxy = miny_maxy
+    miny_maxy_idxes = find_y_bounds(vertices)
+    if not miny_maxy_idxes:
+        return None
+    miny_left_idx,maxy_idx = miny_maxy_idxes
 
-ch1 = CharPlotter(oct_x_dom=oct_x_dom_imp, oct_y_dom=oct_y_dom_imp)
+    miny_point = vertices[miny_left_idx]
+
+    # find right most point of top edge
+    miny_right_idx = miny_left_idx
+    while vertices[miny_right_idx].y == miny_point.y:
+        miny_right_idx =circinc(miny_right_idx,length)
+    miny_right_idx = circdec(miny_right_idx,length)
+
+    # find left most point of top edge
+    while vertices[miny_left_idx].y == miny_point.y:
+        miny_left_idx =circdec(miny_left_idx,length)
+    miny_left_idx = circinc(miny_left_idx,length)
+    
+    flat = False
+    if vertices[miny_left_idx].x != vertices[miny_right_idx].x:
+        print "FLAT", vertices[miny_left_idx], vertices[miny_right_idx]
+        flat = True
+    else:
+        print "not FLAT", vertices[miny_left_idx], vertices[miny_right_idx]
+        flat = False
+        
+    if ch:
+        # for a square the X and 0 will be
+        # on opposite sides 
+        # compare poly1 (square like) vs poly4 (diamond like)
+        rv = vertices[miny_right_idx]
+        lv = vertices[miny_left_idx]
+        ch.putchar(rv.x,rv.y,'X')
+        ch.putchar(lv.x,lv.y,'O')
+        
+    if flat:
+        if vertices[miny_left_idx].x > vertices[miny_right_idx].y:
+            # py swap!
+            miny_left_idx, miny_right_idx = miny_right_idx, miny_left_idx
+
+    if ch:
+        # for a square the X and 0 will be
+        # on opposite sides 
+        # compare poly1 (square like) vs poly4 (diamond like)
+        rv = vertices[miny_right_idx]
+        lv = vertices[miny_left_idx]
+        ch.putchar(rv.x,rv.y,'X')
+        ch.putchar(lv.x,lv.y,'O')
+
+    next_idx = circdec(miny_right_idx,length)    
+    previous_idx = circinc(miny_left_idx,length)    
+
+    if ch:
+        # for a square the X and 0 will be
+        # on opposite sides 
+        # compare poly1 (square like) vs poly4 (diamond like)
+        nrv = vertices[next_idx]
+        plv = vertices[previous_idx]
+
+        ch.putchar(nrv.x,nrv.y,'Xn')
+        ch.putchar(plv.x,plv.y,'Op')
+
+    # gradient from next to center vs
+    # gradient from previous to center
+    dxn,dyn = dxdy(vertices[next_idx], vertices[miny_left_idx])
+    dxp,dyp = dxdy(vertices[previous_idx], vertices[miny_left_idx])
+
+    # YN/XN > YP/XP  ==>  YN/XN-YP/XP > 0 ==> XNXP * (YN/XN-YP/XP)  > 0 
+    #                ==>  (XP*YN- XN*YP)  > 0
+    # not sure how you can assume XNXP > 0 ?
+    #
+    if (dxp*dyn - dxn*dyp) > 0:
+        miny_left_idx,miny_right_idx = miny_right_idx, miny_left_idx
+    
+ch1 = CharPlotter(oct_x_dom=oct_x_dom_implementation, oct_y_dom=oct_y_dom_implementation)
+ch1.regupoly(poly1,marks='.')
 ch1.regupoly(poly4,marks='.')
+fill_convex_poly(poly1,ch=ch1)
+fill_convex_poly(poly4,ch=ch1)
 ch1.render()
