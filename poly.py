@@ -1,5 +1,5 @@
 from lineutil import *
-
+from math import ceil
 # assuming poly vertices are in order..
 # square
 poly1 = [Coord(0,0)]
@@ -22,7 +22,7 @@ add_after_last_point(poly4,-4,2)
 add_after_last_point(poly4,-6,10)
 add_after_last_point(poly4,10,10)
 add_after_last_point(poly4,10,-10)
-add_after_last_point(poly4,-5,-8)
+add_after_last_point(poly4,-6,-9)
 
 circdec = lambda i,length: (length+(i-1))%length
 circinc = lambda i,length: (i+1)%length
@@ -73,6 +73,14 @@ print poly3
 print find_y_bounds(poly4)
 print poly4
 
+class HlineList(object):
+    def __init__(self,ystart=0):
+        self.__hlines = []
+        self.ystart = ystart
+
+    def add(xstart, ystart):
+        self.__hlines.append((xstart,ystart))
+
 
 def fill_convex_poly(vertices,ch=None):
     global circinc,circdec
@@ -114,10 +122,12 @@ def fill_convex_poly(vertices,ch=None):
         ch.putchar(rv.x,rv.y,'X')
         ch.putchar(lv.x,lv.y,'O')
         
+    left_edge_dir = -1
     if flat:
         if vertices[miny_left_idx].x > vertices[miny_right_idx].y:
             # py swap!
             miny_left_idx, miny_right_idx = miny_right_idx, miny_left_idx
+            left_edge_dir = 1
 
     if ch:
         # for a square the X and 0 will be
@@ -151,8 +161,91 @@ def fill_convex_poly(vertices,ch=None):
     # not sure how you can assume XNXP > 0 ?
     #
     if (dxp*dyn - dxn*dyp) > 0:
+        # swap !
         miny_left_idx,miny_right_idx = miny_right_idx, miny_left_idx
+        left_edge_dir = 1
+
     
+    # Gather stats:
+    # where does is the ystart?
+    ystart = vertices[miny_left_idx].y
+    # how many hlines do we wants? malloc
+    num_hlines = vertices[maxy_idx].y - vertices[miny_left_idx].y -1  #---> need more refining.
+
+
+    def scanedge(x1,y1,x2,y2,drawer=None,chr='#'):
+        dx,dy = x2-x1, y2-y1
+        if dy <= 0:
+            return [ ]
+        inv_slope = 1.0*dx/dy
+        xvals = []
+        for y in range(y1,y2):
+            xvals.append(x1+int(ceil((y-y1)*inv_slope)))
+            if drawer:
+                drawer.putchar(xvals[-1],y,chr)
+        return xvals
+
+
+    skipfirst = 0 if flat else 1
+    
+    left_edge_dir = -1
+    prev_idx = current_idx = miny_left_idx
+    start_hlines = []        
+    # for this Ystart, get all edge horizontal lines...
+    increment = circinc if left_edge_dir < 0 else circdec
+    while current_idx != maxy_idx:
+        current_idx = increment(current_idx,length)
+        start_hlines.extend(scanedge(vertices[prev_idx].x,
+                                     vertices[prev_idx].y,
+                                     vertices[current_idx].x,
+                                     vertices[current_idx].y,drawer=None))
+
+        prev_idx = current_idx
+
+
+    stop_hlines = []
+    prev_idx = current_idx = miny_right_idx
+    increment = circinc if left_edge_dir > 0 else circdec
+    while current_idx != maxy_idx:
+        current_idx = increment(current_idx,length)
+        stop_hlines.extend(scanedge(vertices[prev_idx].x -1,
+                                     vertices[prev_idx].y,
+                                     vertices[current_idx].x -1,
+                                     vertices[current_idx].y,drawer=None,chr='@'))
+        prev_idx = current_idx
+
+    
+    for i,x in enumerate(start_hlines): 
+        x2 = stop_hlines[i]
+        ch.putchar(x,ystart+i,'%'*(x2-x))
+
+    # total_hlines = vertices[maxy_idx].y - vertices[miny_left_idx].y - 1
+    # if flat:
+    #     total_hlines -= 1
+
+    # ystart = vertices[miny_left_idx].y +1
+    # if flat:
+    #     ystart -= 1
+        
+    # hlinelist = []
+
+    # increment = circinc if 1 else decinc
+    # v = scanedge(vertices[prev_idx].x, vertices[prev_idx].y, vertices[current_idx].x, vertices[current_idx].y, total_hlines)
+    # while current_idx != maxy_idx:
+    #     current_idx = increment(current_idx, length)
+    #     # do something
+    #     try:
+    #         hlinelist.append(v.next())
+    #     except StopIteration,ex:
+    #         break;
+    #     ch.putchar(vertices[prev_idx].x, vertices[prev_idx].y,'=')
+    #     ch.putchar(vertices[current_idx].x, vertices[current_idx].y,'+')
+    #     ch.putchar(hlinelist[-1],ystart,'&')
+
+    #     prev_idx= current_idx
+
+
+
 ch1 = CharPlotter(oct_x_dom=oct_x_dom_implementation, oct_y_dom=oct_y_dom_implementation)
 ch1.regupoly(poly1,marks='.')
 ch1.regupoly(poly4,marks='.')
