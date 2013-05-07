@@ -20,9 +20,11 @@ add_after_last_point = lambda lst,x,y: lst.append(lst[-1].add(x,y))
 poly4 = [Coord(20,0)]
 add_after_last_point(poly4,-4,2)
 add_after_last_point(poly4,-6,10)
-add_after_last_point(poly4,10,10)
-add_after_last_point(poly4,10,-10)
-add_after_last_point(poly4,-6,-9)
+add_after_last_point(poly4,-1,5)
+add_after_last_point(poly4,5,8)
+add_after_last_point(poly4,3,3)
+add_after_last_point(poly4,4,-4)
+add_after_last_point(poly4,6,-9)
 
 circdec = lambda i,length: (length+(i-1))%length
 circinc = lambda i,length: (i+1)%length
@@ -73,16 +75,82 @@ print poly3
 print find_y_bounds(poly4)
 print poly4
 
-class HlineList(object):
-    def __init__(self,ystart=0):
-        self.__hlines = []
+class HLineList(object):
+    def __init__(self,ystart=0, length=0, drawer=None):
+        self.__hlines_start = []
+        self.__hlines_stop = []
         self.ystart = ystart
+        self.length = length
+        self.drawer = drawer
 
-    def add(xstart, ystart):
-        self.__hlines.append((xstart,ystart))
+    def addstart(self,xstart):
+        self.__hlines_start.append(xstart)
+
+    def addstop(self,xstop):
+        self.__hlines_stop.append(xstop)
+
+    def __add_edge(self,                   
+                   x1,y1,
+                   x2,y2,
+                   skipfirst = 0,
+                   leftedge=False,
+                   char=None):        
+        dy = y2-y1
+        dx = x2-x1
+        if dy <= 0:
+            return
+        invM = (1.0*dx)/dy
+        
+        for y in range(y1+skipfirst, y2):
+            x = int(ceil(invM*(y-y1)+x1))
+            if leftedge:
+                self.addstart(x)
+            else:
+                self.addstop(x)
+        
+            if self.drawer:
+                self.drawer.putchar(x,y,char)
+
+    def scanedge_left(self,
+                      x1,y1,
+                      x2,y2,
+                      skipfirst = 0,
+                      char=None):
+        self.__add_edge(x1,y1,
+                        x2,y2,
+                        skipfirst = skipfirst,
+                        leftedge=True,
+                        char=char)
 
 
-def fill_convex_poly(vertices,ch=None):
+    def scanedge_right(self,
+                      x1,y1,
+                      x2,y2,
+                      skipfirst = 0,
+                      char=None):
+        self.__add_edge(x1,y1,
+                        x2,y2,
+                        skipfirst = skipfirst,
+                        leftedge=False,
+                        char=char)
+
+
+    def draw_hlines(self):
+        if not self.drawer:
+            raise Exception("Nothing to draw hlines with")
+            
+        length_start = len(self.__hlines_start)
+        length_stop = len(self.__hlines_stop)
+        if length_start != length_stop :
+            raise Exception("Something wrong with your algorithm, stop points(%d) != start points(%d)"%(length_stop,length_start))
+
+        for i,startpnt in enumerate(self.__hlines_start):            
+            y = self.ystart + i
+            x = startpnt
+            x_stop = self.__hlines_stop[i]            
+            self.drawer.putchar(x,y,'='*(x_stop - x))  # in C, I'd rather memset this.
+
+def fill_convex_poly(vertices,drawer=None):
     global circinc,circdec
     length = len(vertices)
     if length == 0:
@@ -113,142 +181,125 @@ def fill_convex_poly(vertices,ch=None):
         print "not FLAT", vertices[miny_left_idx], vertices[miny_right_idx]
         flat = False
         
-    if ch:
+    if drawer:
         # for a square the X and 0 will be
         # on opposite sides 
         # compare poly1 (square like) vs poly4 (diamond like)
         rv = vertices[miny_right_idx]
         lv = vertices[miny_left_idx]
-        ch.putchar(rv.x,rv.y,'X')
-        ch.putchar(lv.x,lv.y,'O')
+        drawer.putchar(rv.x,rv.y,'X')
+        drawer.putchar(lv.x,lv.y,'O')
         
-    left_edge_dir = -1
+    left_edge_dir = -1  # left edge indexing direction
     if flat:
         if vertices[miny_left_idx].x > vertices[miny_right_idx].y:
             # py swap!
             miny_left_idx, miny_right_idx = miny_right_idx, miny_left_idx
             left_edge_dir = 1
 
-    if ch:
+    if drawer:
         # for a square the X and 0 will be
         # on opposite sides 
         # compare poly1 (square like) vs poly4 (diamond like)
         rv = vertices[miny_right_idx]
         lv = vertices[miny_left_idx]
-        ch.putchar(rv.x,rv.y,'X')
-        ch.putchar(lv.x,lv.y,'O')
+        drawer.putchar(rv.x,rv.y,'X')
+        drawer.putchar(lv.x,lv.y,'O')
 
     next_idx = circdec(miny_right_idx,length)    
     previous_idx = circinc(miny_left_idx,length)    
 
-    if ch:
+    if drawer:
         # for a square the X and 0 will be
         # on opposite sides 
         # compare poly1 (square like) vs poly4 (diamond like)
         nrv = vertices[next_idx]
         plv = vertices[previous_idx]
 
-        ch.putchar(nrv.x,nrv.y,'Xn')
-        ch.putchar(plv.x,plv.y,'Op')
+        drawer.putchar(nrv.x,nrv.y,'Xn')
+        drawer.putchar(plv.x,plv.y,'Op')
 
     # gradient from next to center vs
     # gradient from previous to center
     dxn,dyn = dxdy(vertices[next_idx], vertices[miny_left_idx])
     dxp,dyp = dxdy(vertices[previous_idx], vertices[miny_left_idx])
 
+    '''
+    Assumptions:
+    Previous point (Xp) before min (Xmin) point on X axis.
+    Next point  (Xn) after min (Xmin) point on X axis.
+
+    In other "words":
+
+    Xp < Xmin => Xmin - Xp < 0 => DXP < 0
+    Xn > Xmin => Xn - Xmin > 0 => -DXN > 0
+    
+    So, 
+    -DXP > 0
+    -DXN > 0
+    => -DXP * -DXN  > 0
+    => DXP * DXN > 0
+
+    And that's why you can assume XNXP > 0 
+
+    If the signs are wrong way around, it will still be -1* somthing * -1 * somethingelse
+
+    Booyah.
+    '''
     # YN/XN > YP/XP  ==>  YN/XN-YP/XP > 0 ==> XNXP * (YN/XN-YP/XP)  > 0 
     #                ==>  (XP*YN- XN*YP)  > 0
     # not sure how you can assume XNXP > 0 ?
     #
     if (dxp*dyn - dxn*dyp) > 0:
-        # swap !
+        # swap.. again !
         miny_left_idx,miny_right_idx = miny_right_idx, miny_left_idx
-        left_edge_dir = 1
-
-    
-    # Gather stats:
-    # where does is the ystart?
-    ystart = vertices[miny_left_idx].y
-    # how many hlines do we wants? malloc
-    num_hlines = vertices[maxy_idx].y - vertices[miny_left_idx].y -1  #---> need more refining.
+        left_edge_dir = 1      
 
 
-    def scanedge(x1,y1,x2,y2,drawer=None,chr='#'):
-        dx,dy = x2-x1, y2-y1
-        if dy <= 0:
-            return [ ]
-        inv_slope = 1.0*dx/dy
-        xvals = []
-        for y in range(y1,y2):
-            xvals.append(x1+int(ceil((y-y1)*inv_slope)))
-            if drawer:
-                drawer.putchar(xvals[-1],y,chr)
-        return xvals
+    dec_if_flat = 1 if flat else 0
+    y_start = miny_point.y + 1 - dec_if_flat
+    y_length = vertices[maxy_idx].y - vertices[miny_left_idx].y - 1 + dec_if_flat
+    hlinelist = HLineList(y_start,y_length,drawer=drawer)
 
-
-    skipfirst = 0 if flat else 1
-    
-    left_edge_dir = -1
     prev_idx = current_idx = miny_left_idx
-    start_hlines = []        
-    # for this Ystart, get all edge horizontal lines...
-    increment = circinc if left_edge_dir < 0 else circdec
+    skipfirst = 0 if flat else 1    
     while current_idx != maxy_idx:
-        current_idx = increment(current_idx,length)
-        start_hlines.extend(scanedge(vertices[prev_idx].x,
-                                     vertices[prev_idx].y,
-                                     vertices[current_idx].x,
-                                     vertices[current_idx].y,drawer=None))
-
+        current_idx = circinc(current_idx,length)
+        X1 = vertices[prev_idx].x
+        Y1 = vertices[prev_idx].y
+        X2 = vertices[current_idx].x
+        Y2 = vertices[current_idx].y
+        hlinelist.scanedge_left(X1,Y1,
+                                X2,Y2,
+                                skipfirst=skipfirst,
+                                char='$')
+        skipfirst = 0
         prev_idx = current_idx
 
 
-    stop_hlines = []
-    prev_idx = current_idx = miny_right_idx
-    increment = circinc if left_edge_dir > 0 else circdec
+    prev_idx = current_idx = miny_left_idx
+    skipfirst = 0 if flat else 1    
     while current_idx != maxy_idx:
-        current_idx = increment(current_idx,length)
-        stop_hlines.extend(scanedge(vertices[prev_idx].x -1,
-                                     vertices[prev_idx].y,
-                                     vertices[current_idx].x -1,
-                                     vertices[current_idx].y,drawer=None,chr='@'))
+        current_idx = circdec(current_idx,length)
+        X1 = vertices[prev_idx].x
+        Y1 = vertices[prev_idx].y
+        X2 = vertices[current_idx].x
+        Y2 = vertices[current_idx].y
+        hlinelist.scanedge_right(X1,Y1,
+                                 X2,Y2,
+                                 skipfirst=skipfirst,
+                                 char='&')
+        skipfirst = 0
         prev_idx = current_idx
 
-    
-    for i,x in enumerate(start_hlines): 
-        x2 = stop_hlines[i]
-        ch.putchar(x,ystart+i,'%'*(x2-x))
 
-    # total_hlines = vertices[maxy_idx].y - vertices[miny_left_idx].y - 1
-    # if flat:
-    #     total_hlines -= 1
+    hlinelist.draw_hlines()
 
-    # ystart = vertices[miny_left_idx].y +1
-    # if flat:
-    #     ystart -= 1
-        
-    # hlinelist = []
-
-    # increment = circinc if 1 else decinc
-    # v = scanedge(vertices[prev_idx].x, vertices[prev_idx].y, vertices[current_idx].x, vertices[current_idx].y, total_hlines)
-    # while current_idx != maxy_idx:
-    #     current_idx = increment(current_idx, length)
-    #     # do something
-    #     try:
-    #         hlinelist.append(v.next())
-    #     except StopIteration,ex:
-    #         break;
-    #     ch.putchar(vertices[prev_idx].x, vertices[prev_idx].y,'=')
-    #     ch.putchar(vertices[current_idx].x, vertices[current_idx].y,'+')
-    #     ch.putchar(hlinelist[-1],ystart,'&')
-
-    #     prev_idx= current_idx
+drawer1 = CharPlotter(oct_x_dom=oct_x_dom_implementation, oct_y_dom=oct_y_dom_implementation)
+drawer1.regupoly(poly1,marks='.')
+drawer1.regupoly(poly4,marks='.')
+fill_convex_poly(poly1,drawer=drawer1)
+fill_convex_poly(poly4,drawer=drawer1)
+drawer1.render()
 
 
-
-ch1 = CharPlotter(oct_x_dom=oct_x_dom_implementation, oct_y_dom=oct_y_dom_implementation)
-ch1.regupoly(poly1,marks='.')
-ch1.regupoly(poly4,marks='.')
-fill_convex_poly(poly1,ch=ch1)
-fill_convex_poly(poly4,ch=ch1)
-ch1.render()
