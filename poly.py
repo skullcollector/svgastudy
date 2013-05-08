@@ -1,5 +1,5 @@
 from lineutil import *
-from math import ceil
+from math import ceil,floor
 # assuming poly vertices are in order..
 # square
 poly1 = [Coord(0,0)]
@@ -22,9 +22,10 @@ add_after_last_point(poly4,-4,2)
 add_after_last_point(poly4,-6,10)
 add_after_last_point(poly4,-1,5)
 add_after_last_point(poly4,5,8)
-add_after_last_point(poly4,3,3)
-add_after_last_point(poly4,4,-4)
+add_after_last_point(poly4,5,3)
+add_after_last_point(poly4,4,-5) # 4, -5???
 add_after_last_point(poly4,6,-9)
+add_after_last_point(poly4,-3,-9)
 
 circdec = lambda i,length: (length+(i-1))%length
 circinc = lambda i,length: (i+1)%length
@@ -203,8 +204,9 @@ class HLineList(object):
                     error -= height
 
         else:
-            ''' edge is X dominant '''
-            x_dom_incr = int(ceil(1.0*width/height)*xincr)  # what? Floats????
+            ''' edge is X dominant '''            
+            #x_dom_incr = int(floor(1.0*width/height)*xincr)  # what? Floats????
+            x_dom_incr = (width/height)*xincr  # what? Floats????
             error_incr = width % height # more float ops???
             error = 0
             if dx < 0:
@@ -226,7 +228,7 @@ class HLineList(object):
                 x1 += x_dom_incr
                 error += error_incr
                 if error > 0:
-                    x1 += x_incr
+                    x1 += xincr
                     error -= height
            
 
@@ -453,7 +455,7 @@ def fill_convex_poly(vertices,drawer=None):
         x = tuples[i][1]
         drawer.putchar(x,hlinelist.ystart+i,'P')
 
-    hlinelist.draw_hlines()
+    #hlinelist.draw_hlines()
 
 drawer1 = CharPlotter(oct_x_dom=oct_x_dom_implementation, oct_y_dom=oct_y_dom_implementation)
 drawer1.regupoly(poly1,marks='.')
