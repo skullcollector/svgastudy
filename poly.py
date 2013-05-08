@@ -75,26 +75,167 @@ print poly3
 print find_y_bounds(poly4)
 print poly4
 
+
+
 class HLineList(object):
-    def __init__(self,ystart=0, length=0, drawer=None):
+    def __init__(self,ystart=0, length=0, drawer=None, use_floats=True):
         self.__hlines_start = []
         self.__hlines_stop = []
+        self.__hlines_tuples = None
         self.ystart = ystart
         self.length = length
+        self.startcount = 0
+        self.stopcount = 0
+        if length <=0:
+            self.__hlines_tuples = [[0,0]]
+        else:
+            self.__hlines_tuples = [[0,0] for i in range(100)] # fake "malloc"
+
         self.drawer = drawer
+        self.edgecalc = self.__add_edge_float if use_floats else self.__add_edge_int
+
+    def gettuples(self):
+        return self.__hlines_tuples[:]
 
     def addstart(self,xstart):
         self.__hlines_start.append(xstart)
+        self.__hlines_tuples[self.startcount][0] = xstart
+        self.startcount+=1
 
     def addstop(self,xstop):
         self.__hlines_stop.append(xstop)
+        self.__hlines_tuples[self.stopcount][1] = xstop
+        self.stopcount+=1
 
-    def __add_edge(self,                   
-                   x1,y1,
-                   x2,y2,
-                   skipfirst = 0,
-                   leftedge=False,
-                   char=None):        
+
+    def __add_edge_bresenham_doesnt_work(self,
+                       x1,y1,
+                       x2,y2,
+                       skipfirst = 0,
+                       leftedge=False,
+                       char=None):        
+        dy = y2-y1
+        dx = x2-x1
+        if dy <= 0:
+            return
+        if dx < 0:
+            dx = -dx
+        
+        if dx > dy:
+            for coord in list(oct_x_dom_implementation(Coord(x1,y1+skipfirst), Coord(x2,y2))):
+                x,y=coord
+                if leftedge:
+                    self.addstart(x)
+                else:
+                    self.addstop(x)
+
+                if self.drawer:
+                    self.drawer.putchar(x,y,char)
+
+        else:
+            for coord in list(oct_y_dom_implementation(Coord(x1,y1+skipfirst), Coord(x2,y2))):
+                x,y =coord
+                if leftedge:
+                    self.addstart(x)
+                else:
+                    self.addstop(x)
+
+                if self.drawer:                
+                    self.drawer.putchar(x,y,char)
+
+    def __add_edge_int(self,
+                       x1,y1,
+                       x2,y2,
+                       skipfirst = 0,
+                       leftedge=False,
+                       char=None):        
+
+        edge_to_add_to = self.addstart if leftedge else self.addstop
+        
+        height = dy = y2-y1 # always > 0, going down from miny to maxy
+        width = dx = x2-x1
+        if dy <= 0:
+            return
+
+        width = width if width > 0 else -width
+        xincr = 1 if dx > 0 else -1
+        if width == 0:
+            ''' vertical '''
+            #for i in range(height-skipfirst,-1,-1):
+
+            i = height - skipfirst
+            while i > 0:
+                i -= 1
+                edge_to_add_to(x1)
+
+        elif width == height:
+            ''' diagonal '''
+
+            x1 = x1+xincr if skipfirst else x1
+            #for i in range(height-skipfirst,-1,-1):
+            i = height - skipfirst
+            while i > 0:
+                i -= 1
+                edge_to_add_to(x1)
+                x1 += xincr
+
+        elif height > width:
+            ''' y dominant '''
+            #return
+            error = 0
+            if dy < 0:
+                error = -height +1  # right -> left
+            if skipfirst != 0:
+                error += width
+                if error > 0:
+                    x1 += xincr
+                    error -= height
+            #for i in range(height-skipfirst,-1,-1):
+            i = height - skipfirst
+            while i > 0:
+                i -= 1
+
+                edge_to_add_to(x1)
+
+                error += width
+                if error > 0:
+                    x1 += xincr
+                    error -= height
+
+        else:
+            ''' edge is X dominant '''
+            x_dom_incr = int(ceil(1.0*width/height)*xincr)  # what? Floats????
+            error_incr = width % height # more float ops???
+            error = 0
+            if dx < 0:
+                error = -height +1
+            if skipfirst != 0:
+                x1 += x_dom_incr
+                error += error_incr
+                if error > 0:
+                    x1 += xincr
+                    error -= height
+
+            #for i in range(height-skipfirst,-1,-1):
+            i = height - skipfirst
+            while i > 0:
+                i -= 1
+
+                edge_to_add_to(x1)
+
+                x1 += x_dom_incr
+                error += error_incr
+                if error > 0:
+                    x1 += x_incr
+                    error -= height
+           
+
+    def __add_edge_float(self,                   
+                         x1,y1,
+                         x2,y2,
+                         skipfirst = 0,
+                         leftedge=False,
+                         char=None):        
         dy = y2-y1
         dx = x2-x1
         if dy <= 0:
@@ -116,11 +257,11 @@ class HLineList(object):
                       x2,y2,
                       skipfirst = 0,
                       char=None):
-        self.__add_edge(x1,y1,
-                        x2,y2,
-                        skipfirst = skipfirst,
-                        leftedge=True,
-                        char=char)
+        self.edgecalc(x1,y1,
+                      x2,y2,
+                      skipfirst = skipfirst,
+                      leftedge=True,
+                      char=char)
 
 
     def scanedge_right(self,
@@ -128,14 +269,14 @@ class HLineList(object):
                       x2,y2,
                       skipfirst = 0,
                       char=None):
-        self.__add_edge(x1,y1,
-                        x2,y2,
-                        skipfirst = skipfirst,
-                        leftedge=False,
-                        char=char)
+        self.edgecalc(x1,y1,
+                      x2,y2,
+                      skipfirst = skipfirst,
+                      leftedge=False,
+                      char=char)
 
 
-    def draw_hlines(self):
+    def draw_hlines(self,use_tuples=True):
         if not self.drawer:
             raise Exception("Nothing to draw hlines with")
             
@@ -144,11 +285,22 @@ class HLineList(object):
         if length_start != length_stop :
             raise Exception("Something wrong with your algorithm, stop points(%d) != start points(%d)"%(length_stop,length_start))
 
-        for i,startpnt in enumerate(self.__hlines_start):            
-            y = self.ystart + i
-            x = startpnt
-            x_stop = self.__hlines_stop[i]            
-            self.drawer.putchar(x,y,'='*(x_stop - x))  # in C, I'd rather memset this.
+        #for i,startpnt in enumerate(self.__hlines_start):            
+        if use_tuples:
+            for i in range(0,min([length_start,length_stop])):
+                t = self.gettuples()
+                xstart,xstop = t[i]
+                y = self.ystart+i
+                self.drawer.putchar(xstart,y,'~'*(xstop-xstart))
+                
+        else:
+            for i in range(0,min([length_start,length_stop])):
+                startpnt = self.__hlines_start[i]
+                y = self.ystart + i
+                x = startpnt
+                x_stop = self.__hlines_stop[i]            
+                self.drawer.putchar(x,y,'='*(x_stop - x))  # in C, I'd rather memset this.
+                
 
 def fill_convex_poly(vertices,drawer=None):
     global circinc,circdec
@@ -259,7 +411,7 @@ def fill_convex_poly(vertices,drawer=None):
     dec_if_flat = 1 if flat else 0
     y_start = miny_point.y + 1 - dec_if_flat
     y_length = vertices[maxy_idx].y - vertices[miny_left_idx].y - 1 + dec_if_flat
-    hlinelist = HLineList(y_start,y_length,drawer=drawer)
+    hlinelist = HLineList(y_start,y_length,drawer=drawer,use_floats=False)
 
     prev_idx = current_idx = miny_left_idx
     skipfirst = 0 if flat else 1    
@@ -277,13 +429,13 @@ def fill_convex_poly(vertices,drawer=None):
         prev_idx = current_idx
 
 
-    prev_idx = current_idx = miny_left_idx
+    prev_idx = current_idx = miny_right_idx
     skipfirst = 0 if flat else 1    
     while current_idx != maxy_idx:
         current_idx = circdec(current_idx,length)
-        X1 = vertices[prev_idx].x
+        X1 = vertices[prev_idx].x-1
         Y1 = vertices[prev_idx].y
-        X2 = vertices[current_idx].x
+        X2 = vertices[current_idx].x-1
         Y2 = vertices[current_idx].y
         hlinelist.scanedge_right(X1,Y1,
                                  X2,Y2,
@@ -291,7 +443,15 @@ def fill_convex_poly(vertices,drawer=None):
                                  char='&')
         skipfirst = 0
         prev_idx = current_idx
+       
+    tuples = hlinelist.gettuples()
+    for i in range(hlinelist.startcount):
+        x = tuples[i][0]
+        drawer.putchar(x,hlinelist.ystart+i,'S')
 
+    for i in range(hlinelist.stopcount):
+        x = tuples[i][1]
+        drawer.putchar(x,hlinelist.ystart+i,'P')
 
     hlinelist.draw_hlines()
 
