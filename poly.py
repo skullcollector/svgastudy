@@ -391,24 +391,42 @@ def fill_convex_poly(vertices,drawer=None):
 
     In other "words":
 
-    Xp < Xmin => Xmin - Xp < 0 => DXP < 0
-    Xn > Xmin => Xn - Xmin > 0 => -DXN > 0
+    Xp < Xmin => Xmin > Xp => Xmin-Xp > 0 => DXP > 0
+    Xn > Xmin => Xmin < Xn => Xmin-Xn < 0 => DXN < 0 => -DXN > 0
+    =>
+    (-DXN * DXP) >0
+
+    Ymin < Yn and  Ymin < Yp  # increasing
     
-    So, 
-    -DXP > 0
-    -DXN > 0
-    => -DXP * -DXN  > 0
-    => DXP * DXN > 0
+    Ymin - Yn < 0 and Ymin - Yp < 0
+    =>
+    DYN < 0 and DYP < 0
+    
+    Alrighty,
+    Since DYN < 0 and DYP < 0 then DYN*DYP > 0
+    (negative * negative > 0)
 
-    And that's why you can assume XNXP > 0 
+    normally:
+    Incline of line_xn(between next and min) will be more than line_xp(between previous and min)
+    DYP/DXP < DYN/DXN
+    => 
+    DYP/DXP < DYN/DXN
+    =>
+    DYP/DXP - DYN/DXN < 0
+    =>
+    (DXN * DXP)*(DYP/DXP - DYN/DXN) < 0
+    =>
+    (DXN * DXP)*DYP/DXP - (DXN * DXP)*DYN/DXN > 0
+    =>
+    DXN*DXP - (DXP * DYN) < 0
+    =>
+    (DXP*DYN)-DXN*DXP < 0
 
-    If the signs are wrong way around, it will still be -1* somthing * -1 * somethingelse
-
-    Booyah.
+    SO if the opposite is true:
+        (DXP*DYN)-DXN*DXP > 0
+        Then something went wrong and the inclines are switched around. Hence the following check
+    
     '''
-    # YN/XN > YP/XP  ==>  YN/XN-YP/XP > 0 ==> XNXP * (YN/XN-YP/XP)  > 0 
-    #                ==>  (XP*YN- XN*YP)  > 0
-    #
     if (dxp*dyn - dxn*dyp) > 0:
         # swap.. again !
         miny_left_idx,miny_right_idx = miny_right_idx, miny_left_idx

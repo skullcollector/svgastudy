@@ -284,7 +284,53 @@ def oct_y_dom_implementation(ptA,ptB):
 
         yield x,y
 
+
 # Convex Polygon code
+
+circdec = lambda i,length: (length+(i-1))%length
+circinc = lambda i,length: (i+1)%length
+def vertirate(vertices,backward=False):
+    '''
+    should use itertools.cycle, but want to get into C mode just now..
+    v = vertirate("Test string 123",True)  # True means reverse iterate
+    for i in range(0,100):
+        print v.next()
+
+    '''
+    global circdec, circinc
+
+    length = len(vertices)
+    i = 0 if not backward else length-1
+    while True:
+        
+        yield vertices[i]
+        if backward:
+            i = circdec(i,length)
+        else:
+            i = circinc(i,length)
+        
+
+def find_y_bounds(vertices):
+    length = len(vertices)
+    if length ==0:
+        return None
+
+    at_min_y = at_max_y = vertices[0]  # at at_min_y or at at_max_y
+    min_idx = max_idx = 0
+    i = 0
+    vgen = vertirate(vertices)
+    for i in range(0,length):
+        v = vgen.next()
+        if  v.y < at_min_y.y:
+            at_min_y = v
+            min_idx = i
+        elif v.y > at_max_y.y:
+            at_max_y = v
+            max_idx = i
+        i +=1
+    return min_idx, max_idx
+
+
 class HLineList(object):
     def __init__(self,ystart=0, length=0, drawer=None, use_floats=False, malloc_size=100):
         self.__hlines_start = [] # extra storage, debugging
@@ -464,6 +510,7 @@ class HLineList(object):
         length_start = len(self.__hlines_start)
         length_stop = len(self.__hlines_stop)
         if length_start != length_stop :
+            # not sure about this algo yet...
             raise Exception("Something wrong with your algorithm, stop points(%d) != start points(%d)"%(length_stop,length_start))
 
         #for i,startpnt in enumerate(self.__hlines_start):            
@@ -485,6 +532,18 @@ class HLineList(object):
 
 
 def fill_convex_poly(vertices,drawer=None, debug=False):
+    '''
+    Basic idea,
+    - use everything as indexes.
+    - make notes in code about what index is where
+    - when iterating, use indexes. simpler to clump x,y vals together
+    - Notes to make:
+      - When y is smallest,
+      - When y is largest.
+      - X for left and right side when y is smallest (top left, top right)
+      - when top is flat.
+      
+    '''
     # GPBB Chapter 38
     global circinc,circdec
     length = len(vertices)
@@ -556,27 +615,46 @@ def fill_convex_poly(vertices,drawer=None, debug=False):
     Assumptions:
     Previous point (Xp) before min (Xmin) point on X axis.
     Next point  (Xn) after min (Xmin) point on X axis.
+    Y is ever in creasing. So Ymin < Yp and Ymin < Yn
 
     In other "words":
 
-    Xp < Xmin => Xmin - Xp < 0 => DXP < 0
-    Xn > Xmin => Xn - Xmin > 0 => -DXN > 0
+    Xp < Xmin => Xmin > Xp => Xmin-Xp > 0 => DXP > 0
+    Xn > Xmin => Xmin < Xn => Xmin-Xn < 0 => DXN < 0 => -DXN > 0
+    =>
+    (-DXN * DXP) >0
+
+    Ymin < Yn and  Ymin < Yp  # increasing
     
-    So, 
-    -DXP > 0
-    -DXN > 0
-    => -DXP * -DXN  > 0
-    => DXP * DXN > 0
+    Ymin - Yn < 0 and Ymin - Yp < 0
+    =>
+    DYN < 0 and DYP < 0
+    
+    Alrighty,
+    Since DYN < 0 and DYP < 0 then DYN*DYP > 0
+    (negative * negative > 0)
 
-    And that's why you can assume XNXP > 0 
+    normally:
+    Incline of line_xn(between next and min) will be more than line_xp(between previous and min)
+    DYP/DXP < DYN/DXN
+    => 
+    DYP/DXP < DYN/DXN
+    =>
+    DYP/DXP - DYN/DXN < 0
+    =>
+    (DXN * DXP)*(DYP/DXP - DYN/DXN) < 0
+    =>
+    (DXN * DXP)*DYP/DXP - (DXN * DXP)*DYN/DXN > 0
+    =>
+    DXN*DXP - (DXP * DYN) < 0
+    =>
+    (DXP*DYN)-DXN*DXP < 0
 
-    If the signs are wrong way around, it will still be -1* somthing * -1 * somethingelse
-
-    Booyah.
+    SO if the opposite is true:
+        (DXP*DYN)-DXN*DXP > 0
+        Then something went wrong and the inclines are switched around. Hence the following check
+    
     '''
-    # YN/XN > YP/XP  ==>  YN/XN-YP/XP > 0 ==> XNXP * (YN/XN-YP/XP)  > 0 
-    #                ==>  (XP*YN- XN*YP)  > 0
-    #
     if (dxp*dyn - dxn*dyp) > 0:
         # swap.. again !
         miny_left_idx,miny_right_idx = miny_right_idx, miny_left_idx
