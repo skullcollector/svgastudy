@@ -1,4 +1,6 @@
-from lineutil import *
+#from lineutil import *
+from gfxutil import Coord, dxdy, CharPlotter, oct_x_dom_implementation, oct_y_dom_implementation
+
 from math import ceil,floor
 # assuming poly vertices are in order..
 # square
@@ -23,7 +25,7 @@ add_after_last_point(poly4,-6,10)
 add_after_last_point(poly4,-1,5)
 add_after_last_point(poly4,5,8)
 add_after_last_point(poly4,5,3)
-add_after_last_point(poly4,4,-5) # 4, -5???
+add_after_last_point(poly4,4,-4) # 4, -5???
 add_after_last_point(poly4,6,-9)
 add_after_last_point(poly4,-3,-9)
 
@@ -150,7 +152,7 @@ class HLineList(object):
                        skipfirst = 0,
                        leftedge=False,
                        char=None):        
-
+        # Chapter 39 GPBB
         edge_to_add_to = self.addstart if leftedge else self.addstop
         
         height = dy = y2-y1 # always > 0, going down from miny to maxy
@@ -162,8 +164,8 @@ class HLineList(object):
         xincr = 1 if dx > 0 else -1
         if width == 0:
             ''' vertical '''
-            #for i in range(height-skipfirst,-1,-1):
 
+            #for i in range(height-skipfirst,-1,-1):
             i = height - skipfirst
             while i > 0:
                 i -= 1
@@ -173,6 +175,7 @@ class HLineList(object):
             ''' diagonal '''
 
             x1 = x1+xincr if skipfirst else x1
+
             #for i in range(height-skipfirst,-1,-1):
             i = height - skipfirst
             while i > 0:
@@ -182,7 +185,7 @@ class HLineList(object):
 
         elif height > width:
             ''' y dominant '''
-            #return
+
             error = 0
             if dy < 0:
                 error = -height +1  # right -> left
@@ -191,6 +194,7 @@ class HLineList(object):
                 if error > 0:
                     x1 += xincr
                     error -= height
+
             #for i in range(height-skipfirst,-1,-1):
             i = height - skipfirst
             while i > 0:
@@ -237,7 +241,8 @@ class HLineList(object):
                          x2,y2,
                          skipfirst = 0,
                          leftedge=False,
-                         char=None):        
+                         char=None):    
+        # GPBB Chapter 38    
         dy = y2-y1
         dx = x2-x1
         if dy <= 0:
@@ -303,8 +308,9 @@ class HLineList(object):
                 x_stop = self.__hlines_stop[i]            
                 self.drawer.putchar(x,y,'='*(x_stop - x))  # in C, I'd rather memset this.
                 
-
+  
 def fill_convex_poly(vertices,drawer=None):
+    # GPBB Chapter 38
     global circinc,circdec
     length = len(vertices)
     if length == 0:
@@ -334,7 +340,7 @@ def fill_convex_poly(vertices,drawer=None):
     else:
         print "not FLAT", vertices[miny_left_idx], vertices[miny_right_idx]
         flat = False
-        
+
     if drawer:
         # for a square the X and 0 will be
         # on opposite sides 
@@ -402,7 +408,6 @@ def fill_convex_poly(vertices,drawer=None):
     '''
     # YN/XN > YP/XP  ==>  YN/XN-YP/XP > 0 ==> XNXP * (YN/XN-YP/XP)  > 0 
     #                ==>  (XP*YN- XN*YP)  > 0
-    # not sure how you can assume XNXP > 0 ?
     #
     if (dxp*dyn - dxn*dyp) > 0:
         # swap.. again !
@@ -445,7 +450,8 @@ def fill_convex_poly(vertices,drawer=None):
                                  char='&')
         skipfirst = 0
         prev_idx = current_idx
-       
+
+    
     tuples = hlinelist.gettuples()
     for i in range(hlinelist.startcount):
         x = tuples[i][0]

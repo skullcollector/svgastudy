@@ -1,4 +1,4 @@
-from lineutil import *
+from gfxutil import *
 
 crds = [Coord(10,10),
         Coord(10,20),
