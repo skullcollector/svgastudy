@@ -636,24 +636,22 @@ def fill_convex_poly(vertices,drawer=None, debug=False):
 
     normally:
     Incline of line_xn(between next and min) will be more than line_xp(between previous and min)
-    DYP/DXP < DYN/DXN
+      DYP/DXP < DYN/DXN
     => 
-    DYP/DXP < DYN/DXN
+      DYP/DXP < DYN/DXN
     =>
-    DYP/DXP - DYN/DXN < 0
+      DYP/DXP - DYN/DXN < 0
     =>
-    (DXN * DXP)*(DYP/DXP - DYN/DXN) < 0
+      (-DXN * DXP)*(DYP/DXP - DYN/DXN) < 0
     =>
-    (DXN * DXP)*DYP/DXP - (DXN * DXP)*DYN/DXN > 0
+      (-DXN * DXP)*DYP/DXP - (-DXN * DXP)*DYN/DXN < 0
     =>
-    DXN*DXP - (DXP * DYN) < 0
+      - DXN*DXP + (DXP * DYN) < 0
     =>
-    (DXP*DYN)-DXN*DXP < 0
+      (DXP*DYN)-DXN*DXP < 0
+      
+     if opposite is true (DXP*DYN)-DXN*DXP > 0 then lines are switched
 
-    SO if the opposite is true:
-        (DXP*DYN)-DXN*DXP > 0
-        Then something went wrong and the inclines are switched around. Hence the following check
-    
     '''
     if (dxp*dyn - dxn*dyp) > 0:
         # swap.. again !
