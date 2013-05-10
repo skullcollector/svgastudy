@@ -209,8 +209,8 @@ class HLineList(object):
         else:
             ''' edge is X dominant '''            
             #x_dom_incr = int(floor(1.0*width/height)*xincr)  # what? Floats????
-            x_dom_incr = (width/height)*xincr  # what? Floats????
-            error_incr = width % height # more float ops???
+            x_dom_incr = (width/height)*xincr  # width > height (ints=> 1, 2, etc)
+            error_incr = width % height # width > height   ( 0 1 2... height-1, 0, 1...)
 
             # if >= 0 left -> right else right -> left
             error = 0 if dx >= 0 else -height +1
@@ -222,7 +222,19 @@ class HLineList(object):
                     error -= height
 
             #for i in range(height-skipfirst,-1,-1):
-            # Basically Bresenham's algo (y dominant case, adjusted for special case)
+            # Basically Bresenham's algo (Y dominant case, adjusted for special case)
+            '''
+            This is Bresenham for the Y dominant case (even though this is supposed to be the X dominant.)
+            
+            So the way I understand it is:
+            x increases always during the X dominant state.
+            y increases only if error value > some threshold, (y increases, error adjusts back to < the threshold)
+            
+            The problem now is that y will increase regardless of what we want.
+            
+            it then means that x will have to ADJUSTED AGAIN based on whatever state y finds itself in.
+
+            '''
             i = height - skipfirst
             while i > 0:
                 i -= 1
