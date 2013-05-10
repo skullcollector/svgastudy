@@ -155,7 +155,7 @@ class HLineList(object):
         # Chapter 39 GPBB
         edge_to_add_to = self.addstart if leftedge else self.addstop
         
-        height = dy = y2-y1 # always > 0, going down from miny to maxy
+        height = dy = y2-y1 # should always > 0, going down from miny to maxy
         width = dx = x2-x1
         if dy <= 0:
             return
@@ -186,16 +186,15 @@ class HLineList(object):
         elif height > width:
             ''' y dominant '''
 
-            error = 0
-            if dy < 0:
-                error = -height +1  # right -> left
+            # if >= 0 left -> right else right -> left
+            error = 0 if dx >= 0 else -height +1                  
             if skipfirst != 0:
                 error += width
                 if error > 0:
                     x1 += xincr
                     error -= height
 
-            #for i in range(height-skipfirst,-1,-1):
+            # Basically Bresenham's algo (y dominant case)
             i = height - skipfirst
             while i > 0:
                 i -= 1
@@ -212,9 +211,9 @@ class HLineList(object):
             #x_dom_incr = int(floor(1.0*width/height)*xincr)  # what? Floats????
             x_dom_incr = (width/height)*xincr  # what? Floats????
             error_incr = width % height # more float ops???
-            error = 0
-            if dx < 0:
-                error = -height +1
+
+            # if >= 0 left -> right else right -> left
+            error = 0 if dx >= 0 else -height +1
             if skipfirst != 0:
                 x1 += x_dom_incr
                 error += error_incr
@@ -223,6 +222,7 @@ class HLineList(object):
                     error -= height
 
             #for i in range(height-skipfirst,-1,-1):
+            # Basically Bresenham's algo (y dominant case, adjusted for special case)
             i = height - skipfirst
             while i > 0:
                 i -= 1
@@ -420,9 +420,9 @@ def fill_convex_poly(vertices,drawer=None):
     =>
       (-DXN * DXP)*DYP/DXP - (-DXN * DXP)*DYN/DXN < 0
     =>
-      - DXN*DXP + (DXP * DYN) < 0
+      - DXN*DYP + (DXP * DYN) < 0
     =>
-      (DXP*DYN)-DXN*DXP < 0
+      (DXP*DYN)-DXN*DYP < 0
       
      if opposite is true (DXP*DYN)-DXN*DXP > 0 then lines are switched
 
