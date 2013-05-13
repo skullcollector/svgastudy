@@ -131,7 +131,55 @@ def line_skeleton(ptA,ptB,oct_x_dom=None,oct_y_dom=None):
             for pt in oct_y_dom(ptA,ptB):
                 yield pt
 
+class Plotter(object):
+    def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None, oct_x_dom=None, oct_y_dom=None, default_colour=None):
+        self.XDIM = XDIM
+        self.YDIM = YDIM
+        self.line = linefunc
+        self.oct_x_dom = oct_x_dom
+        self.oct_y_dom = oct_y_dom
+        self.buffer = [] if not buffer else buffer
+        if default_colour == None:
+            raise Exception("Give me a default colour!")
+
+    def call_line(self, start,stop):
+        for i in self.line(start,stop,oct_x_dom=self.oct_x_dom, oct_y_dom=self.oct_y_dom):
+            yield i
+        
+    def put_pixel(self, x, y, colour):
+        pass  # sdl
+
+    def render(self):
+        pass # sdl
             
+    def put_line(self, pt1, pt2, colour):  # charline from charplotter
+        aline = list(self.call_line(pt1,pt2))
+        for i in aline:
+            x,y = i 
+            self.put_pixel(x,y,colour)
+
+    def regupoly(self,points,colour):
+        number_of_pnts = len(points)
+        for i in range(0,number_of_pnts):
+            self.put_line(points[i], points[(i+1)%number_of_pnts],colour)
+
+    # def create_npoly(self, **kwargs):
+    #     x = kwargs.get('x',20)
+    #     y = kwargs.get('y',20)
+    #     colour = kwargs.get('colour',self.default_colour) # fix me, how does sdl/pygame spec colour
+    #     theta = kwargs.get('theta',0)
+    #     corners = kwargs.get('num_of_corners',4)        
+    #     radius =  kwargs.get('radius', 10)
+    #     angle = lambda num : num*2*pi/(1.0*corners)
+    #     output = []
+    #     for corner in range(corners,0,-1):
+    #         a = angle(corner)+theta
+    #         xn,yn = int(round(x+radius*cos(a))), int(round(y+radius*sin(a)))
+    #         self.put_pixel(xn,yn,colour)
+    #         output += [Coord(xn,yn)]
+    #     return output
+
+        
 class CharPlotter(object):
     def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None, filler_char=' ', oct_x_dom=None, oct_y_dom=None):
         self.XDIM = XDIM
