@@ -1,10 +1,14 @@
-import pygame
+import pygame as sdl  # to-may-to, to-maaaa-to
 
-screen = pygame.display.set_mode((640, 400))
+
+sdl.init()
+screen = sdl.display.set_mode((640, 400))
 running = 1
 
+red = sdl.Color(255,0,0)
+
 while running:
-    event = pygame.event.poll()
-    if event.type == pygame.KEYDOWN: #pygame.QUIT:
+    event = sdl.event.poll()
+    if event.type == sdl.KEYDOWN: #pygame.QUIT:
         running = 0
         

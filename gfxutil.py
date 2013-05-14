@@ -132,7 +132,7 @@ def line_skeleton(ptA,ptB,oct_x_dom=None,oct_y_dom=None):
                 yield pt
 
 class Plotter(object):
-    def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None, oct_x_dom=None, oct_y_dom=None, default_colour=None):
+    def __init__(self,default_colour, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None, oct_x_dom=None, oct_y_dom=None):
         self.XDIM = XDIM
         self.YDIM = YDIM
         self.line = linefunc
@@ -147,7 +147,8 @@ class Plotter(object):
             yield i
         
     def put_pixel(self, x, y, colour):
-        pass  # sdl
+        self.buffer[x][y] = colour
+        # delete pixelarray
 
     def render(self):
         pass # sdl
