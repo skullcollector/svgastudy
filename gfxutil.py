@@ -164,22 +164,6 @@ class Plotter(object):
         for i in range(0,number_of_pnts):
             self.put_line(points[i], points[(i+1)%number_of_pnts],colour)
 
-    # def create_npoly(self, **kwargs):
-    #     x = kwargs.get('x',20)
-    #     y = kwargs.get('y',20)
-    #     colour = kwargs.get('colour',self.default_colour) # fix me, how does sdl/pygame spec colour
-    #     theta = kwargs.get('theta',0)
-    #     corners = kwargs.get('num_of_corners',4)        
-    #     radius =  kwargs.get('radius', 10)
-    #     angle = lambda num : num*2*pi/(1.0*corners)
-    #     output = []
-    #     for corner in range(corners,0,-1):
-    #         a = angle(corner)+theta
-    #         xn,yn = int(round(x+radius*cos(a))), int(round(y+radius*sin(a)))
-    #         self.put_pixel(xn,yn,colour)
-    #         output += [Coord(xn,yn)]
-    #     return output
-
         
 class CharPlotter(object):
     def __init__(self, XDIM=50, YDIM=40, linefunc=line_skeleton, buffer=None, filler_char=' ', oct_x_dom=None, oct_y_dom=None):
@@ -381,7 +365,7 @@ def find_y_bounds(vertices):
 
 
 class HLineList(object):
-    def __init__(self,ystart=0, length=0, drawer=None, use_floats=False, malloc_size=100):
+    def __init__(self,ystart=0, length=0, drawer=None, use_floats=False, malloc_size=2000):
         self.__hlines_start = [] # extra storage, debugging
         self.__hlines_stop = []  # extra storage, debugging
         self.__hlines_tuples = None
@@ -538,8 +522,8 @@ class HLineList(object):
             else:
                 self.addstop(x)
         
-            if self.drawer:
-                self.drawer.putchar(x,y,char)
+            # if self.drawer:
+            #     self.drawer.putchar(x,y,char)
 
     def scanedge_left(self,
                       x1,y1,
@@ -579,7 +563,8 @@ class HLineList(object):
                 t = self.gettuples()
                 xstart,xstop = t[i]
                 y = self.ystart+i
-                self.drawer.putchar(xstart,y,'~'*(xstop-xstart))
+                #self.drawer.putchar(xstart,y,'~'*(xstop-xstart))
+                self.drawer.put_line(Coord(xstart,y),Coord(xstop,y),0xff00)
                 
         else:
             for i in range(0,min([length_start,length_stop])):
@@ -587,8 +572,8 @@ class HLineList(object):
                 y = self.ystart + i
                 x = startpnt
                 x_stop = self.__hlines_stop[i]            
-                self.drawer.putchar(x,y,'='*(x_stop - x))  # in C, I'd rather memset this.
-
+                # self.drawer.putchar(x,y,'='*(x_stop - x))  # in C, I'd rather memset this.
+                self.drawer.put_line(Coord(x,y),Coord(xstop,y),0xff00)
 
 
 def fill_convex_poly(vertices,drawer=None, debug=False):
@@ -663,8 +648,8 @@ def fill_convex_poly(vertices,drawer=None, debug=False):
         nrv = vertices[next_idx]
         plv = vertices[previous_idx]
 
-        drawer.putchar(nrv.x,nrv.y,'Xn')
-        drawer.putchar(plv.x,plv.y,'Op')
+        # drawer.putchar(nrv.x,nrv.y,'Xn')
+        # drawer.putchar(plv.x,plv.y,'Op')
 
     # gradient from next to center vs
     # gradient from previous to center
@@ -757,11 +742,11 @@ def fill_convex_poly(vertices,drawer=None, debug=False):
         tuples = hlinelist.gettuples()
         for i in range(hlinelist.startcount):
             x = tuples[i][0]
-            drawer.putchar(x,hlinelist.ystart+i,'S')
+            # drawer.putchar(x,hlinelist.ystart+i,'S')
 
         for i in range(hlinelist.stopcount):
             x = tuples[i][1]
-            drawer.putchar(x,hlinelist.ystart+i,'P')
+            # drawer.putchar(x,hlinelist.ystart+i,'P')
 
     hlinelist.draw_hlines()
 
