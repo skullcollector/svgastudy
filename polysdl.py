@@ -39,7 +39,7 @@ def test_plotter(surface):
 def convexpoly_algo(surface):
     plt = PygamePlotter(surface,default_colour=0xff0000)
     output = plt.create_npoly(num_of_corners=9,radius=100,x=200,y=200);
-    fill_convex_poly(output,drawer=plt)
+    fill_convex_poly(output,drawer=plt,colour=0x0000ff)
 
 def render(surface):
     #test_plotter(surface)

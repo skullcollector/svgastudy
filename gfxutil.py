@@ -547,7 +547,7 @@ class HLineList(object):
                       char='&')
 
 
-    def draw_hlines(self,use_tuples=True):
+    def draw_hlines(self,use_tuples=True,colour=0x00ff00):
         if not self.drawer:
             raise Exception("Nothing to draw hlines with")
             
@@ -564,7 +564,9 @@ class HLineList(object):
                 xstart,xstop = t[i]
                 y = self.ystart+i
                 #self.drawer.putchar(xstart,y,'~'*(xstop-xstart))
-                self.drawer.put_line(Coord(xstart,y),Coord(xstop,y),0xff00)
+                self.drawer.put_line(Coord(xstart,y),Coord(xstop,y),colour)
+                for xx in range(xstart,xstop-xstart):
+                    self.drawer.put_pixel(xx,y,colour)
                 
         else:
             for i in range(0,min([length_start,length_stop])):
@@ -573,10 +575,12 @@ class HLineList(object):
                 x = startpnt
                 x_stop = self.__hlines_stop[i]            
                 # self.drawer.putchar(x,y,'='*(x_stop - x))  # in C, I'd rather memset this.
-                self.drawer.put_line(Coord(x,y),Coord(xstop,y),0xff00)
+                #self.drawer.put_line(Coord(x,y),Coord(xstop,y),colour)
+                for xx in range(x,x_stop-x):
+                    self.drawer.put_pixel(xx,y,colour)
 
 
-def fill_convex_poly(vertices,drawer=None, debug=False):
+def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000):
     '''
     Basic idea,
     - use everything as indexes.
@@ -748,5 +752,5 @@ def fill_convex_poly(vertices,drawer=None, debug=False):
             x = tuples[i][1]
             # drawer.putchar(x,hlinelist.ystart+i,'P')
 
-    hlinelist.draw_hlines()
+    hlinelist.draw_hlines(colour=colour)
 
