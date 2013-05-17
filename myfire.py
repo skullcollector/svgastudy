@@ -4,14 +4,8 @@ import random
 import numpy
 
 from pygame.locals import *
-width,height = 320,200
+width,height = 320,100
 
-
-# def init_fire(width = 640, height=480):
-#     fire_array = numpy.zeros((width, height))
-#     fire_surface = pygame.Surface((width,height),0,8)
-
-#     return  fire_array,fire_surface
 fire_array = numpy.zeros((width, height))
 fire_surface = pygame.Surface((width,height),0,8)
 
@@ -29,7 +23,7 @@ def render_fire():
             _above_current = int(fire_array[x,min(height-1, y+1)])
             _below_current = int(fire_array[x,max(0, y-1)])
             _above_index = max(0,y-1)
-            fire_avg = sum([ _left_of_current + _right_of_current + _above_current + _below_current])/4 
+            fire_avg = ( _left_of_current + _right_of_current + _above_current + _below_current)/4
             temp_array[x, _above_index] = min(255, max(0,fire_avg))
             
     for x in range(0,width,2):
@@ -39,15 +33,24 @@ def render_fire():
 
     fire_array = temp_array
     pygame.surfarray.blit_array(fire_surface,fire_array.astype('int') )    
-    return fire_array,fire_surface
+    #return fire_surface
     
 random.seed()
 pygame.init()
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 
+def set_palette(surface):
+    colours = numpy.ones((256,3))
+    red,green,blue = 0,1,2
+    colours[:,red] = numpy.arange(256)
+    colours[:,green] = numpy.arange(256)
+    #colours[:,blue] = numpy.arange(256)
+    surface.set_palette(colours)
+
 def main():
     running = True
+    set_palette(fire_surface)
     while running:
         for event in pygame.event.get():
             if event.type == KEYDOWN or event.type==KEYUP: #QUIT:
