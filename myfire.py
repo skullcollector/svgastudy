@@ -7,7 +7,7 @@ from pygame.locals import *
 
 
 DISPLAY_WIDTH, DISPLAY_HEIGHT = 320,200
-if False:
+if True:
     width,height = 60,40
 else:
     width,height = DISPLAY_WIDTH, DISPLAY_HEIGHT
@@ -20,20 +20,39 @@ def render_fire():
     global fire_surface
     width,height = fire_array.shape
 
-    temp_array = numpy.zeros((width, height))
-    
+    temp_array = numpy.zeros((width, height))    
     for x in range(0,width):
         for y in range(0,height):
-            _left_of_current = int(fire_array.item(max(0,x-1), y))
-            _right_of_current = int(fire_array.item(min(width-1,x+1),y))
-            _above_current = int(fire_array.item(x,min(height-1, y+1)))
-            _below_current = int(fire_array.item(x,max(0, y-1)))
-            _above_index = max(0,y-1)
-            fire_avg = ( _left_of_current + _right_of_current + _above_current + _below_current)/4 -2
-            temp_array.itemset(x, _above_index , min(255, max(0,fire_avg)) )
+
+            x_test = x-1 if x-1 > 0 else 0
+            #_left_of_current = int(fire_array.item(max(0,x-1), y))
+            _left_of_current = fire_array.item(x_test, y)
+
+            x_test = x+1 if x+1 < width-1 else width-1
+            #_right_of_current = int(fire_array.item(min(width-1,x+1),y))
+            _right_of_current = fire_array.item(x_test,y)
+
+            y_test = y+1 if y+1 < height-1 else height-1
+            #_above_current = int(fire_array.item(x,min(height-1, y+1)))
+            _above_current = fire_array.item(x,y_test)
+
+            y_test = y-1 if y > 1 else 0
+            #_below_current = int(fire_array.item(x,max(0, y-1)))
+            _below_current = fire_array.item(x,y_test)
+
+            _above_index = y-1 if y > 1 else 0
+            #_above_index = max(0,y-1)
+            fire_avg = ( _left_of_current + _right_of_current + _above_current + _below_current)/4 - 2
+            #temp_array.itemset(x, _above_index , min(255, max(0,fire_avg)) )
+            fire_avg = fire_avg if fire_avg > 0 else 0
+            fire_avg = 255 if fire_avg > 255 else fire_avg
+            temp_array.itemset(x, _above_index , fire_avg )
             
     for x in range(0,width,2):
-        fuel = min(255, max(0,fire_array.item(x,height-1) + numpy.random.randint(-30,30)))
+        fuel = fire_array.item(x,height-1) + numpy.random.randint(-30,30)
+        fuel = fuel if fuel > 0 else 0
+        fuel = fuel if fuel < 255 else 255
+        #fuel = min(255, max(0,fire_array.item(x,height-1) + numpy.random.randint(-30,30)))
         temp_array.itemset(x,height-1, fuel)
 
         temp_array.itemset(x+1,height-1, fuel )
