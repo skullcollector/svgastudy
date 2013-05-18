@@ -6,9 +6,9 @@ import numpy
 from pygame.locals import *
 
 
-DISPLAY_WIDTH, DISPLAY_HEIGHT = 320,200
+DISPLAY_WIDTH, DISPLAY_HEIGHT = 1024,800
 if True:
-    width,height = 60,40
+    width,height = DISPLAY_WIDTH/4,DISPLAY_HEIGHT/8
 else:
     width,height = DISPLAY_WIDTH, DISPLAY_HEIGHT
 
@@ -42,21 +42,48 @@ def render_fire():
 
             _above_index = y-1 if y > 1 else 0
             #_above_index = max(0,y-1)
-            fire_avg = ( _left_of_current + _right_of_current + _above_current + _below_current)/4 - 2
+            fire_avg = ( _left_of_current + _right_of_current + _above_current + _below_current)/4 - 1
             #temp_array.itemset(x, _above_index , min(255, max(0,fire_avg)) )
             fire_avg = fire_avg if fire_avg > 0 else 0
             fire_avg = 255 if fire_avg > 255 else fire_avg
             temp_array.itemset(x, _above_index , fire_avg )
-            
-    for x in range(0,width,2):
-        fuel = fire_array.item(x,height-1) + numpy.random.randint(-30,30)
-        fuel = fuel if fuel > 0 else 0
-        fuel = fuel if fuel < 255 else 255
-        #fuel = min(255, max(0,fire_array.item(x,height-1) + numpy.random.randint(-30,30)))
-        temp_array.itemset(x,height-1, fuel)
 
-        temp_array.itemset(x+1,height-1, fuel )
+    if False:
 
+        for x in range(0,width,2):   # replace this with some matrix op perhaps?
+            fuel = fire_array.item(x,height-1) + numpy.random.randint(-30,30)
+            fuel = fuel if fuel > 0 else 0
+            fuel = fuel if fuel < 255 else 255
+            #fuel = min(255, max(0,fire_array.item(x,height-1) + numpy.random.randint(-30,30)))
+            temp_array.itemset(x,height-1, fuel)
+
+            temp_array.itemset(x+1,height-1, fuel )
+    else:
+        if True:            
+            # #fire_array[:,height-1] = numpy.sum([fire_array[:,height-1:], numpy.random.randint(-30,30,width)])
+            #fuel = fire_array
+            # for c,f in enumerate(fuel):
+            #     #print c,c, f
+            #     fuel[c,height-1] += numpy.random.randint(-30,30)
+            randints = numpy.random.randint(-30,40,width)
+            #print len(randints), len(temp_array[:,height-1]), randints, temp_array[:,height-1]
+            fire_array[:,height-1] = numpy.sum([fire_array[:,height-1], randints], axis=0)
+        else:
+            fuel = fire_array
+            for c,f in enumerate(fuel):
+                #print c,c, f
+                fuel[c,height-1] += numpy.random.randint(-30,30)
+        for x in range(0,width,2):   # replace this with some matrix op perhaps?
+            #fuel = fire_array.item(x,height-1) + numpy.random.randint(-30,30)
+            fuel = fire_array.item(x,height-1)
+            fuel = fuel if fuel > 0 else 0
+            fuel = fuel if fuel < 255 else 255
+            #fuel = min(255, max(0,fire_array.item(x,height-1) + numpy.random.randint(-30,30)))
+            temp_array.itemset(x,height-1, fuel)
+
+            temp_array.itemset(x+1,height-1, fuel )
+
+        
     fire_array = temp_array
     #pygame.surfarray.blit_array(fire_surface,temp_array.astype('int') )    
     pygame.surfarray.blit_array(fire_surface,temp_array )    
@@ -64,7 +91,8 @@ def render_fire():
     
 random.seed()
 pygame.init()
-screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT),0,8)
+screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
+screen.set_alpha(None)
 clock = pygame.time.Clock()
 
 def set_palette(surface):
@@ -94,6 +122,8 @@ def main():
     global fire_surface
     running = True
     set_palette(fire_surface)
+    pygame.event.set_allowed([QUIT, KEYDOWN, KEYUP])
+    t = True
     while running:
         for event in pygame.event.get():
             if event.type == KEYDOWN or event.type==KEYUP: #QUIT:
@@ -109,13 +139,13 @@ def main():
         '''
         screen.blit(fire_surface, (0,0))  
 
-        pos = (0, 0)
-        fire_surface1 = pygame.transform.scale(fire_surface, (DISPLAY_WIDTH,DISPLAY_HEIGHT))
-        for i in range(0, 4, 2):
-            #screen.blit(fire_surface1, (pos[0] + fire_surface.get_width()*i, pos[1]))
-            screen.blit(fire_surface1, (pos[0] ,  pos[1]))
+        # pos = (0, 0)
+        # fire_surface1 = pygame.transform.scale(fire_surface, (DISPLAY_WIDTH,DISPLAY_HEIGHT))
+        # for i in range(0, 4, 2):
+        #     #screen.blit(fire_surface1, (pos[0] + fire_surface.get_width()*i, pos[1]))
+        #     screen.blit(fire_surface1, (pos[0] ,  pos[1]))
 
-        clock.tick(30)
+        #clock.tick(20)
 
         pygame.display.flip()
 
