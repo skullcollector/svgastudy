@@ -12,12 +12,18 @@ if True:
 else:
     width,height = DISPLAY_WIDTH, DISPLAY_HEIGHT
 
+# Speed up attempt:Removed random from the loop.. negligible.
+random_strings = [ numpy.random.randint(-30,30,width) for i in range(40)]
+random_string_idx = 0
+
 fire_array = numpy.zeros((width, height))
 fire_surface = pygame.Surface((width,height),0,8)
 
 def render_fire():
     global fire_array
     global fire_surface
+    global random_strings
+    global random_string_idx
     width,height = fire_array.shape
 
     temp_array = numpy.zeros((width, height))    
@@ -47,46 +53,23 @@ def render_fire():
             fire_avg = fire_avg if fire_avg > 0 else 0
             fire_avg = 255 if fire_avg > 255 else fire_avg
             temp_array.itemset(x, _above_index , fire_avg )
-
-    if False:
-
-        for x in range(0,width,2):   # replace this with some matrix op perhaps?
-            fuel = fire_array.item(x,height-1) + numpy.random.randint(-30,30)
-            fuel = fuel if fuel > 0 else 0
-            fuel = fuel if fuel < 255 else 255
-            #fuel = min(255, max(0,fire_array.item(x,height-1) + numpy.random.randint(-30,30)))
-            temp_array.itemset(x,height-1, fuel)
-
-            temp_array.itemset(x+1,height-1, fuel )
-    else:
-        if True:            
-            # #fire_array[:,height-1] = numpy.sum([fire_array[:,height-1:], numpy.random.randint(-30,30,width)])
-            #fuel = fire_array
-            # for c,f in enumerate(fuel):
-            #     #print c,c, f
-            #     fuel[c,height-1] += numpy.random.randint(-30,30)
-            randints = numpy.random.randint(-30,40,width)
-            #print len(randints), len(temp_array[:,height-1]), randints, temp_array[:,height-1]
-            fire_array[:,height-1] = numpy.sum([fire_array[:,height-1], randints], axis=0)
-        else:
-            fuel = fire_array
-            for c,f in enumerate(fuel):
-                #print c,c, f
-                fuel[c,height-1] += numpy.random.randint(-30,30)
-        for x in range(0,width,2):   # replace this with some matrix op perhaps?
-            #fuel = fire_array.item(x,height-1) + numpy.random.randint(-30,30)
-            fuel = fire_array.item(x,height-1)
-            fuel = fuel if fuel > 0 else 0
-            fuel = fuel if fuel < 255 else 255
-            #fuel = min(255, max(0,fire_array.item(x,height-1) + numpy.random.randint(-30,30)))
-            temp_array.itemset(x,height-1, fuel)
-
-            temp_array.itemset(x+1,height-1, fuel )
+            
+    #randints = numpy.random.randint(-30,30,width)
+    randints = random_strings[random_string_idx]
+    random_string_idx = (random_string_idx+1) % len(random_strings)
+    fire_array[:,height-1] = numpy.sum([fire_array[:,height-1], randints], axis=0)
+    for x in range(0,width,2):   # replace this with some matrix op perhaps?
+        #fuel = fire_array.item(x,height-1) + numpy.random.randint(-30,30)
+        fuel = fire_array.item(x,height-1)
+        fuel = fuel if fuel > 0 else 0
+        fuel = fuel if fuel < 255 else 255
+        temp_array.itemset(x,height-1, fuel)        
+        temp_array.itemset(x+1,height-1, fuel )
 
         
     fire_array = temp_array
     #pygame.surfarray.blit_array(fire_surface,temp_array.astype('int') )    
-    pygame.surfarray.blit_array(fire_surface,temp_array )    
+    pygame.surfarray.blit_array(fire_surface,fire_array )    
     #return fire_surface
     
 random.seed()
@@ -95,22 +78,17 @@ screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
 screen.set_alpha(None)
 clock = pygame.time.Clock()
 
-def set_palette(surface):
-    # colours = numpy.ones((256,3))
-    # red,green,blue = 0,1,2
-    # colours[:,red] = numpy.arange(256)
-    # colours[:,green] = numpy.arange(256)
-    # #colours[:,blue] = numpy.arange(256)
-    # surface.set_palette(colours)
 
+
+def set_palette(surface):
     gstep, bstep = 75, 150
     cmap = numpy.zeros((256, 3))
-    cmap[:, 0] = numpy.minimum(numpy.arange(256) * 3, 255)
-    cmap[gstep:, 1] = cmap[:-gstep, 0]
-    cmap[bstep:, 2] = cmap[:-bstep, 0]
-    for i in enumerate(cmap):
-        print i
+    red,green,blue = 0,1,2
+    cmap[:, red] = numpy.minimum(numpy.arange(256) * 3, 255)
+    cmap[gstep:, green] = cmap[:-gstep, red]
+    cmap[bstep:, blue] = cmap[:-bstep, red]
     surface.set_palette(cmap)
+
 
 '''
  question: How does the pygame guys manage to make fast fire effect?
