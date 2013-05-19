@@ -41,6 +41,59 @@ class Coord(object):
     def __sub__(self, other):
         return self.sub(x=other.x, y=other.y)
         
+class Coord3(Coord):
+    z= 0
+    def __init__(self,x=0,y=0,z=0):        
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def __str__(self):
+        return "<%d,%d,%d>"%(self.x, self.y,self.z)
+
+    def __repr__(self):
+        return "<%d,%d,%d>"%(self.x, self.y,self.z)
+
+    def add(self, x = 0, y = 0,z=0):
+        return Coord3(self.x+x, self.y+y, self.z+z)
+
+    @forinstance
+    def __add__(self, other):
+        return self.add(x=other.x, y=other.y, z=other.z)
+
+    def sub(self, x= 0, y = 0,z=0):
+        return Coord3(self.x-x, self.y-y, self.z-z)
+
+    @forinstance
+    def __sub__(self, other):
+        return self.sub(x=other.x, y=other.y, z= other.z)
+
+# class MultiDimCoord(object):
+#     '''
+#     Due to my annoying habit of me switching between 2D 3D (4D?)
+#     matrixes, coordinates and vectors, I want something that can 
+#     expand dimension on the fly
+    
+#     MultiDim keywords maps to coordinate values:
+#     MultiDim (x=2,y=3,z=0,w=12)
+#     '''
+#     def __init__(self,*args,**kwargs):
+#         self.data = kwargs
+#         for kw,value in kwargs.items():
+#             setattr(self, kw, value)
+            
+#     def __str__(self):
+#         return "<%s>"%','.join([k+":"+str(v) for k,v in self.data.items()])
+
+#     def __repr__(self):
+#         return "<%s>"%','.join([k+":"+str(v) for k,v in self.data.items()])
+
+#     def add(self, *args,**kwargs):
+#         self.data = kwargs
+#         for kw,value in kwargs.items():
+#             setattr(self, kw, value)
+
+
 dxdy = lambda start,stop : (stop.x - start.x, stop.y - start.y)
 close_enough = lambda actualpnt, calcpnt: sqrt((actualpnt.x-calcpnt.x)**2 + (actualpnt.y-calcpnt.y)**2) < 2
 practically_nothing = lambda val : abs(val) < 0.1
@@ -365,7 +418,7 @@ def find_y_bounds(vertices):
 
 
 class HLineList(object):
-    def __init__(self,ystart=0, length=0, drawer=None, use_floats=False, malloc_size=2000):
+    def __init__(self,ystart=0, length=0, drawer=None, use_floats=False, malloc_size=20000):
         self.__hlines_start = [] # extra storage, debugging
         self.__hlines_stop = []  # extra storage, debugging
         self.__hlines_tuples = None

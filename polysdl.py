@@ -1,6 +1,7 @@
 import pygame
 from pygame.locals import *
 from gfxutil import *
+from numpy import pi as nm_pi
 
 class PygamePlotter(Plotter):
     def __init__(self, surface, *args, **kwargs):
@@ -34,36 +35,40 @@ def test_plotter(surface):
 
     output = plt.create_npoly(num_of_corners=9,radius=100,x=200,y=200);
     plt.regupoly(output,0x00ff00)
-    
-
-def convexpoly_algo(surface):
+   
+def convexpoly_algo(surface,rotation=0):
     plt = PygamePlotter(surface,default_colour=0xff0000)
-    output = plt.create_npoly(num_of_corners=9,radius=100,x=200,y=200);
+    output = plt.create_npoly(num_of_corners=9,radius=100,x=200,y=200,theta=rotation);
     fill_convex_poly(output,drawer=plt,colour=0x0000ff)
 
-def render(surface):
+def render(surface,rotation):
     #test_plotter(surface)
-    convexpoly_algo(surface)
+    convexpoly_algo(surface,rotation=rotation)
 
+clock = pygame.time.Clock()
 
 def main():
     pygame.init()
     screen = pygame.display.set_mode((640, 480))
 
     running = True
-
+    rotation = 0
+    
     while running:
         
-        render(screen)
-        
+        render(screen,rotation*pi/10)
+        rotation += 1
+        rotation = rotation % 10
         for event in pygame.event.get():
             if event.type == KEYDOWN: #QUIT:
                 running = False
             else:
                 print event
                 
-        #screen.fill((120, 120, 120))
+
         pygame.display.flip()
+        clock.tick(20)
+        screen.fill((0,0,0))
         
     pygame.quit()
   
