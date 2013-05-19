@@ -388,7 +388,11 @@ class HLineList(object):
         # adding as single items
         self.__hlines_start.append(xstart)
         # adding as part of a tuple.
-        self.__hlines_tuples[self.startcount][0] = xstart        
+        try:
+            self.__hlines_tuples[self.startcount][0] = xstart        
+        except Exception,ex:
+            import pdb; pdb.set_trace()
+            raise ex
         self.startcount+=1
         # Both approaches not required, but still need to figure out if the left points will always match right.
 
@@ -580,7 +584,7 @@ class HLineList(object):
                     self.drawer.put_pixel(xx,y,colour)
 
 
-def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000):
+def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hlinelist = None, draw_hlines=True):
     '''
     Basic idea,
     - use everything as indexes.
@@ -711,8 +715,14 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000):
     dec_if_flat = 1 if flat else 0
     y_start = miny_point.y + 1 - dec_if_flat
     y_length = vertices[maxy_idx].y - vertices[miny_left_idx].y - 1 + dec_if_flat
-    hlinelist = HLineList(y_start,y_length,drawer=drawer,use_floats=False)
-
+    if hlinelist is None:
+        hlinelist = HLineList(y_start,y_length,drawer=drawer,use_floats=False)
+    else:
+        # this case doesnt work yet...
+        hlinelist.y_start = y_start
+        hlinelist.length = y_length
+        hlinelist.drawer = drawer
+        
     prev_idx = current_idx = miny_left_idx
     skipfirst = 0 if flat else 1    
     while current_idx != maxy_idx:
@@ -752,5 +762,10 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000):
             x = tuples[i][1]
             # drawer.putchar(x,hlinelist.ystart+i,'P')
 
-    hlinelist.draw_hlines(colour=colour)
+    if draw_hlines:
+        hlinelist.draw_hlines(colour=colour)
+
+    return hlinelist
+
+    #
 
