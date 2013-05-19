@@ -20,7 +20,7 @@ from pygame.locals import *
 from gfxutil import *
 from math import pi, cos,sin
 
-PROJECTION_RATIO =-2.0
+PROJECTION_RATIO =-5.0
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
 
 class PygamePlotter(Plotter):
@@ -80,16 +80,22 @@ def concat_x_forms(source4X4_first, source4X4_second):
     return dest4X4
 
 def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00):
-    plt = PygamePlotter(surface,default_colour=0xff0000)
+    plt = PygamePlotter(surface,default_colour=colour)
     polypts2d = []
     for pt in polypts3d:
         txpolypt = xformvec(xform4X4,pt)
         xval,yval,zval,wval = txpolypt
+        '''
+        so far theory is:
+        we start at center point x,y = SCREEN_WIDTH/2, SCREEN_HEIGHT/2
+        if the 3d point goes to the left or right it moves by by xval/zval (zval larger, perceived xposition further away)
+        if the 3d point goes to up or down it moves by by yval/zval.
+        '''
         new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
         new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
         polypts2d.append(Coord(new_x,new_y))  
         print pt,polypts2d[-1]
-    fill_convex_poly(polypts2d,drawer=plt,colour=0x0000ff)
+    fill_convex_poly(polypts2d,drawer=plt,colour=colour)
     
 def render(surface,rotation=0):
     vertices = [[-30,-15,-1,1],[0,15,0,1],[10,-5,0,1]]
