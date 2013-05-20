@@ -1,4 +1,5 @@
 from math import pi, sin, cos, sqrt, atan
+from functools import partial
 
 
 def forinstance(inputfunction, *args,**kwargs):
@@ -614,27 +615,61 @@ class HLineList(object):
             # not sure about this algo yet...
             raise Exception("Something wrong with your algorithm, stop points(%d) != start points(%d)"%(length_stop,length_start))
 
-        #for i,startpnt in enumerate(self.__hlines_start):            
-        if use_tuples:
+        if True:
+            tuples = self.gettuples()
+            put_pixel = self.drawer.put_pixel
+            y = self.ystart
+            def per_tuple(idx_and_tuple,local_vals):
+                idx,tple = idx_and_tuple  # thanks enumerate
+                xstart,xstop = tple
+                y = local_vals['y']+idx
+                if xstart < xstop:
+                    x_range = xrange(xstart,xstop)
+                else:
+                    x_range = xrange(xstop,xstart)   
+                map(partial(put_pixel, y=y, colour=colour),x_range)                
+
+            map(partial(per_tuple,local_vals=locals()), enumerate(tuples)) # local_vals for y
+
+        if False:
+            t = self.gettuples()
+            put_pixel = self.drawer.put_pixel
+            y = self.ystart
             for i in range(0,min([length_start,length_stop])):
-                t = self.gettuples()
                 xstart,xstop = t[i]
-                y = self.ystart+i
-                #self.drawer.putchar(xstart,y,'~'*(xstop-xstart))
-                self.drawer.put_line(Coord(xstart,y),Coord(xstop,y),colour)
-                for xx in range(xstart,xstop-xstart):
-                    self.drawer.put_pixel(xx,y,colour)
-                
-        else:
+                y += 1             
+                if xstart < xstop:
+                    x_range = range(xstart,xstop)
+                else:
+                    x_range = range(xstop,xstart)   
+                map(partial(put_pixel, y=y, colour=colour),[xx for xx in x_range])
+
+        if False:
+            t = self.gettuples()
+            put_pixel = self.drawer.put_pixel
             for i in range(0,min([length_start,length_stop])):
-                startpnt = self.__hlines_start[i]
-                y = self.ystart + i
-                x = startpnt
-                x_stop = self.__hlines_stop[i]            
-                # self.drawer.putchar(x,y,'='*(x_stop - x))  # in C, I'd rather memset this.
-                #self.drawer.put_line(Coord(x,y),Coord(xstop,y),colour)
-                for xx in range(x,x_stop-x):
-                    self.drawer.put_pixel(xx,y,colour)
+
+                xstart,xstop = t[i]
+                y = self.ystart+i                
+                if xstart < xstop:
+                    map(partial(put_pixel, y=y, colour=colour),[xx for xx in range(xstart,xstop)])
+                else:
+                    map(partial(put_pixel, y=y, colour=colour),[xx for xx in range(xstop,xstart)])
+
+        #else:
+        if False:
+            t = self.gettuples()
+            for i in range(0,min([length_start,length_stop])):
+
+                xstart,xstop = t[i]
+                y = self.ystart+i                
+                if xstart < xstop:
+                    for xx in range(xstart,xstop):
+                        self.drawer.put_pixel(xx,y,colour=0xff0000)
+                else:
+                    for xx in range(xstop, xstart):
+                        self.drawer.put_pixel(xx,y,colour=0xff0000)
+            
 
 
 def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hlinelist = None, draw_hlines=True):

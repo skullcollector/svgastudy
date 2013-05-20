@@ -65,7 +65,7 @@ def convexpoly_algo(surface,rotation=0):
 def xformvec(xform4X4, source4X1):
     destvec4X1 = [0 for i in range(4)]
     for i in range(4):
-        destvec4X1[i] = 0
+        #destvec4X1[i] = 0
         for j in range(4):
             destvec4X1[i] += xform4X4[i][j] * source4X1[j]
     return destvec4X1
@@ -74,27 +74,58 @@ def concat_x_forms(source4X4_first, source4X4_second):
     dest4X4 = [[0 for j in range(4)] for i in range(4)]    
     for i in range(4):
         for j in range(4):
-            dest4X4[i][j] = 0
+            #dest4X4[i][j] = 0
             for k in range(4):
-                dest4X4[i][j] += source4X4_first[i][k] * source4X4_second[k][j]
+                dest4X4[i][j] += source4X4_first[i][k] * source4X4_second[k][j]    
+
+    # for i in range(4):
+    #     for j in range(4):
+    #         dest4X4[i][j] = 0
+    #         for k in range(4):
+    #             dest4X4[i][j] += source4X4_first[i][k] * source4X4_second[k][j]    
+
+    #func = lambda i,j,k: source4X4_first[i][k] * source4X4_second[k][j]
+    # def func(k,i,j,dest ): 
+    #     dest[i][j] += source4X4_first[i][k] * source4X4_second[k][j]
+
+    # func_k = partial(map,partial(map,partial(func, dest=dest4X4,i = range(4)),j=range(4)))
+    # map(func_k,range(4))
     return dest4X4
 
+from functools import partial
 def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00):
     plt = PygamePlotter(surface,default_colour=colour)
     polypts2d = []
-    for pt in polypts3d:
-        txpolypt = xformvec(xform4X4,pt)
-        xval,yval,zval,wval = txpolypt
-        '''
-        so far theory is:
-        we start at center point x,y = SCREEN_WIDTH/2, SCREEN_HEIGHT/2
-        if the 3d point goes to the left or right it moves by by xval/zval (zval larger, perceived xposition further away)
-        if the 3d point goes to up or down it moves by by yval/zval.
-        '''
-        new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
-        new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
-        polypts2d.append(Coord(new_x,new_y))  
-        print pt,polypts2d[-1]
+    if True:
+        def per_3dpt(pt,matrix,output_pts):
+            txpolypt = xformvec(matrix,pt)
+            xval,yval,zval,wval = txpolypt
+            '''
+            so far theory is:
+            we start at center point x,y = SCREEN_WIDTH/2, SCREEN_HEIGHT/2
+            if the 3d point goes to the left or right it moves by by xval/zval (zval larger, perceived xposition further away)
+            if the 3d point goes to up or down it moves by by yval/zval.
+            '''
+            new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
+            new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
+            output_pts.append(Coord(new_x,new_y))  
+            #print pt,polypts2d[-1]
+        map(partial(per_3dpt,matrix=xform4X4,output_pts=polypts2d), polypts3d)
+            
+    else:
+        for pt in polypts3d:
+            txpolypt = xformvec(xform4X4,pt)
+            xval,yval,zval,wval = txpolypt
+            '''
+            so far theory is:
+            we start at center point x,y = SCREEN_WIDTH/2, SCREEN_HEIGHT/2
+            if the 3d point goes to the left or right it moves by by xval/zval (zval larger, perceived xposition further away)
+            if the 3d point goes to up or down it moves by by yval/zval.
+            '''
+            new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
+            new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
+            polypts2d.append(Coord(new_x,new_y))  
+            #print pt,polypts2d[-1]
     fill_convex_poly(polypts2d,drawer=plt,colour=colour)
     
 def render(surface,rotation=0):
@@ -137,7 +168,7 @@ def main():
                 
 
         pygame.display.flip()
-        clock.tick(20)
+        clock.tick(30)
         screen.fill((0,0,0))
         
     pygame.quit()
