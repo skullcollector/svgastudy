@@ -19,7 +19,10 @@ import pygame
 from pygame.locals import *
 from gfxutil import *
 from math import pi, cos,sin
+from functools import partial
+from itertools import starmap,permutations,combinations_with_replacement
 
+lcombo = list(combinations_with_replacement(range(4),r=3))
 PROJECTION_RATIO =-5.0
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
 
@@ -69,30 +72,34 @@ def xformvec(xform4X4, source4X1):
         for j in range(4):
             destvec4X1[i] += xform4X4[i][j] * source4X1[j]
     return destvec4X1
+dest4X4 = [[0 for j in range(4)] for i in range(4)]    
+def funcx(i,j,k,source1,source2,dest):
+    dest[i][j] +=  (source1[i][k] * source2[k][j]  )
 
 def concat_x_forms(source4X4_first, source4X4_second):
-    dest4X4 = [[0 for j in range(4)] for i in range(4)]    
-    for i in range(4):
-        for j in range(4):
-            #dest4X4[i][j] = 0
-            for k in range(4):
-                dest4X4[i][j] += source4X4_first[i][k] * source4X4_second[k][j]    
+    global dest4X4
+    # def funcx(i,j,k,source1,source2,dest):
+    #     print "k=",k,'j=',j,'i=',i, dest[i][j] ,'+=', source1[i][k] ,'*', source2[k][j],
+    #     dest[i][j] +=  (source1[i][k] * source2[k][j]  )
+    #     print "result", dest[i][j]
+    #     print worldform, polyform
+
+    # dest4X4_2 = [[2 for j in range(4)] for i in range(4)]        
+    funcy = partial(funcx, source2= source4X4_first, source1=source4X4_second, dest=dest4X4)
+    global lcombo
+    list(starmap(funcy,lcombo))
+    #print dest4X4,'...'
+
 
     # for i in range(4):
     #     for j in range(4):
-    #         dest4X4[i][j] = 0
+    #         #dest4X4[i][j] = 0
     #         for k in range(4):
     #             dest4X4[i][j] += source4X4_first[i][k] * source4X4_second[k][j]    
-
-    #func = lambda i,j,k: source4X4_first[i][k] * source4X4_second[k][j]
-    # def func(k,i,j,dest ): 
-    #     dest[i][j] += source4X4_first[i][k] * source4X4_second[k][j]
-
-    # func_k = partial(map,partial(map,partial(func, dest=dest4X4,i = range(4)),j=range(4)))
-    # map(func_k,range(4))
+                
+            
     return dest4X4
 
-from functools import partial
 def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00):
     plt = PygamePlotter(surface,default_colour=colour)
     polypts2d = []

@@ -419,7 +419,7 @@ def find_y_bounds(vertices):
 
 
 class HLineList(object):
-    def __init__(self,ystart=0, length=0, drawer=None, use_floats=False, malloc_size=20000):
+    def __init__(self,ystart=0, length=0, drawer=None, use_floats=False, malloc_size=200000):
         self.__hlines_start = [] # extra storage, debugging
         self.__hlines_stop = []  # extra storage, debugging
         self.__hlines_tuples = None
