@@ -430,7 +430,8 @@ class HLineList(object):
         if length <=0:
             self.__hlines_tuples = [[0,0]]
         else:
-            self.__hlines_tuples = [[0,0] for i in range(malloc_size)] # fake "malloc"
+            #self.__hlines_tuples = [[0,0] for i in range(malloc_size)] # fake "malloc"
+            self.__hlines_tuples = [[None,None]] # fake "malloc"
 
         self.drawer = drawer
         self.edgecalc = self.__add_edge_float if use_floats else self.__add_edge_int
@@ -439,25 +440,19 @@ class HLineList(object):
         return self.__hlines_tuples[:]
 
     def addstart(self,xstart):
-        # adding as single items
-        self.__hlines_start.append(xstart)
-        # adding as part of a tuple.
-        try:
-            self.__hlines_tuples[self.startcount][0] = xstart        
-        except Exception,ex:
-            import pdb; pdb.set_trace()
-            raise ex
-        self.startcount+=1
-        # Both approaches not required, but still need to figure out if the left points will always match right.
+        if self.__hlines_tuples[-1][0] is None:
+            self.__hlines_tuples[-1][0] = xstart
+        else:
+            self.__hlines_tuples.append([xstart,None])
+        self.startcount += 1
 
     def addstop(self,xstop):
-        # adding as single items
-        self.__hlines_stop.append(xstop)
-        # adding as part of a tuple.
-        self.__hlines_tuples[self.stopcount][1] = xstop
-        self.stopcount+=1
-        # Both approaches not required, but still need to figure out if the left points will always match right.
-          
+        if self.__hlines_tuples[self.stopcount][1] is None:
+            self.__hlines_tuples[self.stopcount][1] = xstop
+        else:
+            import pdb;pdb.set_trace()
+            raise Exception("what? This is not supposed to happen!")
+        self.stopcount += 1         
 
     def __add_edge_int(self,
                        x1,y1,

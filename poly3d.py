@@ -102,7 +102,7 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00):
             polypts2d.append(Coord(new_x,new_y))  
     else:
         polypts2d = map(partial(gen_proj_pt,xform4X4=xform4X4), polypts3d)
-    fill_convex_poly(polypts2d,drawer=plt,colour=colour)
+    return fill_convex_poly(polypts2d,drawer=plt,colour=colour,draw_hlines=True)
     
 def render(surface,rotation=0):
     vertices = [
@@ -134,7 +134,8 @@ def render(surface,rotation=0):
     polyform[2,0] = -polyform[0,2]
 
     worldviewxform = concat_x_forms(worldform, polyform)
-    xform_and_project_poly(surface, worldviewxform, vertices)
+    vals = xform_and_project_poly(surface, worldviewxform, vertices)
+    #import pdb; pdb.set_trace()
 
 clock = pygame.time.Clock()
 def main():
