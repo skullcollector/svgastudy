@@ -147,7 +147,7 @@ def render(surface,rotation=0, new_hotness=True):
             if x1 > x2:
                 temp_array[x2:x1,y].fill(0xff0000)
             else:
-                temp_array[x1:x2,y].fill(0xff0000)
+                temp_array[x1:x2,y].fill(0x00ff00)
             y += 1
         pygame.surfarray.blit_array(surface,temp_array)
 
