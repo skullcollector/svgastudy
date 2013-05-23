@@ -137,8 +137,6 @@ def render(surface,rotation=0, new_hotness=True):
     draw_hlines = False if new_hotness else True
     hlinesdata = xform_and_project_poly(surface, worldviewxform, vertices, draw_hlines=draw_hlines)
     if not draw_hlines:
-        # here follows...
-        # THE NEW HOTNESS!
         vals = hlinesdata.gettuples()
         temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
         
