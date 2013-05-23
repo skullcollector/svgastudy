@@ -83,7 +83,7 @@ def gen_proj_pt(pt,xform4X4):
     new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
     return Coord(new_x,new_y)
 
-def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00):
+def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_hlines=False):
     plt = PygamePlotter(surface,default_colour=colour)
     polypts2d = []
     if False:
@@ -102,9 +102,9 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00):
             polypts2d.append(Coord(new_x,new_y))  
     else:
         polypts2d = map(partial(gen_proj_pt,xform4X4=xform4X4), polypts3d)
-    return fill_convex_poly(polypts2d,drawer=plt,colour=colour,draw_hlines=True)
+    return fill_convex_poly(polypts2d,drawer=plt,colour=colour,draw_hlines=draw_hlines)
     
-def render(surface,rotation=0):
+def render(surface,rotation=0, new_hotness=True):
     vertices = [
         numpy.array([[-30],
                      [-15],
@@ -134,8 +134,24 @@ def render(surface,rotation=0):
     polyform[2,0] = -polyform[0,2]
 
     worldviewxform = concat_x_forms(worldform, polyform)
-    vals = xform_and_project_poly(surface, worldviewxform, vertices)
-    #import pdb; pdb.set_trace()
+    draw_hlines = False if new_hotness else True
+    hlinesdata = xform_and_project_poly(surface, worldviewxform, vertices, draw_hlines=draw_hlines)
+    if not draw_hlines:
+        # here follows...
+        # THE NEW HOTNESS!
+        vals = hlinesdata.gettuples()
+        temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
+        
+        idx = 0
+        y = hlinesdata.ystart
+        for v in vals:
+            x1, x2 = v
+            if x1 > x2:
+                temp_array[x2:x1,y].fill(0xff0000)
+            else:
+                temp_array[x1:x2,y].fill(0xff0000)
+            y += 1
+        pygame.surfarray.blit_array(surface,temp_array)
 
 clock = pygame.time.Clock()
 def main():
@@ -157,7 +173,7 @@ def main():
                 
 
         pygame.display.flip()
-        clock.tick(20)
+        clock.tick(40)
         screen.fill((0,0,0))
         
     pygame.quit()
