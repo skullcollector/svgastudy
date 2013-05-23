@@ -22,7 +22,7 @@ from math import pi, cos,sin
 import numpy
 
 PROJECTION_RATIO =-5.0
-SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
+SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 800
 
 class PygamePlotter(Plotter):
     def __init__(self, surface, *args, **kwargs):
@@ -140,13 +140,14 @@ def render(surface,rotation=0, new_hotness=True):
         vals = hlinesdata.gettuples()
         temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
         
-        idx = 0
         y = hlinesdata.ystart
         for v in vals:
             x1, x2 = v
-            if x1 > x2:
+            if x1 > x2:                
+                #numpy.put(temp_array,[x2+y*SCREEN_WIDTH, x1+y*SCREEN_WIDTH] , 0xff00ff)
                 temp_array[x2:x1,y].fill(0xff0000)
             else:
+                #numpy.put(temp_array,[x1+y*SCREEN_WIDTH, x2+y*SCREEN_WIDTH] , 0xff00ff)
                 temp_array[x1:x2,y].fill(0x00ff00)
             y += 1
         pygame.surfarray.blit_array(surface,temp_array)
