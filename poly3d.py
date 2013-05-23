@@ -19,6 +19,7 @@ import pygame
 from pygame.locals import *
 from gfxutil import *
 from math import pi, cos,sin
+import numpy
 
 PROJECTION_RATIO =-5.0
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
@@ -61,61 +62,35 @@ def convexpoly_algo(surface,rotation=0):
     output = plt.create_npoly(num_of_corners=9,radius=100,x=200,y=200,theta=rotation);
     fill_convex_poly(output,drawer=plt,colour=0x0000ff)
 
-
 def xformvec(xform4X4, source4X1):
-    destvec4X1 = [0 for i in range(4)]
-    for i in range(4):
-        #destvec4X1[i] = 0
-        for j in range(4):
-            destvec4X1[i] += xform4X4[i][j] * source4X1[j]
-    return destvec4X1
+    return xform4X4*source4X1
 
-def concat_x_forms(source4X4_first, source4X4_second):
-    dest4X4 = [[0 for j in range(4)] for i in range(4)]    
-    for i in range(4):
-        for j in range(4):
-            #dest4X4[i][j] = 0
-            for k in range(4):
-                dest4X4[i][j] += source4X4_first[i][k] * source4X4_second[k][j]    
-
-    # for i in range(4):
-    #     for j in range(4):
-    #         dest4X4[i][j] = 0
-    #         for k in range(4):
-    #             dest4X4[i][j] += source4X4_first[i][k] * source4X4_second[k][j]    
-
-    #func = lambda i,j,k: source4X4_first[i][k] * source4X4_second[k][j]
-    # def func(k,i,j,dest ): 
-    #     dest[i][j] += source4X4_first[i][k] * source4X4_second[k][j]
-
-    # func_k = partial(map,partial(map,partial(func, dest=dest4X4,i = range(4)),j=range(4)))
-    # map(func_k,range(4))
-    return dest4X4
+def concat_x_forms(source4X4_first, source4X4_second):   
+    return source4X4_first * source4X4_second
 
 from functools import partial
+def gen_proj_pt(pt,xform4X4):
+    txpolypt = xformvec(xform4X4,pt)
+    xval,yval,zval,wval = txpolypt
+    
+    '''
+    so far theory is:
+    we start at center point x,y = SCREEN_WIDTH/2, SCREEN_HEIGHT/2
+    if the 3d point goes to the left or right it moves by by xval/zval (zval larger, perceived xposition further away)
+    if the 3d point goes to up or down it moves by by yval/zval.
+    '''
+    new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
+    new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
+    return Coord(new_x,new_y)
+
 def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00):
     plt = PygamePlotter(surface,default_colour=colour)
     polypts2d = []
-    if True:
-        def per_3dpt(pt,matrix,output_pts):
-            txpolypt = xformvec(matrix,pt)
-            xval,yval,zval,wval = txpolypt
-            '''
-            so far theory is:
-            we start at center point x,y = SCREEN_WIDTH/2, SCREEN_HEIGHT/2
-            if the 3d point goes to the left or right it moves by by xval/zval (zval larger, perceived xposition further away)
-            if the 3d point goes to up or down it moves by by yval/zval.
-            '''
-            new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
-            new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
-            output_pts.append(Coord(new_x,new_y))  
-            #print pt,polypts2d[-1]
-        map(partial(per_3dpt,matrix=xform4X4,output_pts=polypts2d), polypts3d)
-            
-    else:
+    if False:
         for pt in polypts3d:
             txpolypt = xformvec(xform4X4,pt)
             xval,yval,zval,wval = txpolypt
+
             '''
             so far theory is:
             we start at center point x,y = SCREEN_WIDTH/2, SCREEN_HEIGHT/2
@@ -125,30 +100,43 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00):
             new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
             new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
             polypts2d.append(Coord(new_x,new_y))  
-            #print pt,polypts2d[-1]
+    else:
+        polypts2d = map(partial(gen_proj_pt,xform4X4=xform4X4), polypts3d)
     fill_convex_poly(polypts2d,drawer=plt,colour=colour)
     
 def render(surface,rotation=0):
-    vertices = [[-30,-15,-1,1],[0,15,0,1],[10,-5,0,1]]
-    worldform =  [[1,0,0,0],
-                  [0,1,0,0],
-                  [0,0,1,0],
-                  [0,0,0,1]]
+    vertices = [
+        numpy.array([[-30],
+                     [-15],
+                     [-1],
+                     [1]]),
+        numpy.array([[0],
+                     [15],
+                     [0],
+                     [1]]),
+        numpy.array([[10],
+                     [-5],
+                     [0],
+                     [1]])
+        ]
+    worldform =  numpy.matrix([[1,0,0,0],
+                               [0,1,0,0],
+                               [0,0,1,0],
+                               [0,0,0,1]])
 
-    polyform =    [[1.0, 0.0, 0.0, 0.0],
-                   [0.0, 1.0, 0.0, 0.0],
-                   [0.0, 0.0, 1.0, -140.0],
-                   [0.0, 0.0, 0.0, 1.0] ]
+    polyform =    numpy.matrix([[1.0, 0.0, 0.0, 0.0],
+                                [0.0, 1.0, 0.0, 0.0],
+                                [0.0, 0.0, 1.0, -140.0],
+                                [0.0, 0.0, 0.0, 1.0] ])
 
-    polyform[0][0] = polyform[2][2] = cos(rotation)
-    polyform[0][2] = sin(rotation)
-    polyform[2][0] = -polyform[0][2]
+    polyform[0,0] = polyform[2,2] = cos(rotation)
+    polyform[0,2] = sin(rotation)
+    polyform[2,0] = -polyform[0,2]
 
     worldviewxform = concat_x_forms(worldform, polyform)
     xform_and_project_poly(surface, worldviewxform, vertices)
 
 clock = pygame.time.Clock()
-
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -168,7 +156,7 @@ def main():
                 
 
         pygame.display.flip()
-        clock.tick(30)
+        clock.tick(20)
         screen.fill((0,0,0))
         
     pygame.quit()
