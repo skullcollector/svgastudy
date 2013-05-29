@@ -83,14 +83,26 @@ def gen_proj_pt(pt,xform4X4):
     new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
     return Coord(new_x,new_y)
 
+def isbackface(polypts):
+    v1 = float(polypts[1][0] - polypts[0][0])
+    v2 = float(polypts[1][1] - polypts[0][1])
+
+    w1 = float(polypts[-1][0] - polypts[0][0])
+    w2 = float(polypts[-1][1] - polypts[0][1])
+    
+    xproduct = v1*w2 - v2*w1
+    return xproduct > 0
+
 def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_hlines=False):
     plt = PygamePlotter(surface,default_colour=colour)
     polypts2d = []
-    if False:
+    if True:
+        txpolypts_array = []
         for pt in polypts3d:
-            txpolypt = xformvec(xform4X4,pt)
+            txpolypts_array.append(xformvec(xform4X4,pt))
+        #if not isbackface(txpolypts_array):
+        for txpolypt in txpolypts_array:
             xval,yval,zval,wval = txpolypt
-
             '''
             so far theory is:
             we start at center point x,y = SCREEN_WIDTH/2, SCREEN_HEIGHT/2
@@ -100,9 +112,11 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_
             new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
             new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
             polypts2d.append(Coord(new_x,new_y))  
+        # else:
+        #     polypts2d = [Coord(0,0) for i in txpolypts_array]
     else:
         polypts2d = map(partial(gen_proj_pt,xform4X4=xform4X4), polypts3d)
-    return fill_convex_poly(polypts2d,drawer=plt,colour=colour,draw_hlines=draw_hlines)
+    return fill_convex_poly(polypts2d,drawer=plt,colour=colour,draw_hlines=draw_hlines),isbackface(txpolypts_array)
     
 def render(surface,rotation=0, new_hotness=True):
     vertices = [
@@ -135,21 +149,24 @@ def render(surface,rotation=0, new_hotness=True):
 
     worldviewxform = concat_x_forms(worldform, polyform)
     draw_hlines = False if new_hotness else True
-    hlinesdata = xform_and_project_poly(surface, worldviewxform, vertices, draw_hlines=draw_hlines)
+    hlinesdata,is_behind_poly = xform_and_project_poly(surface, worldviewxform, vertices, draw_hlines=draw_hlines)
     if not draw_hlines:
         vals = hlinesdata.gettuples()
         temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
-        
-        y = hlinesdata.ystart
-        for v in vals:
-            x1, x2 = v
-            if x1 > x2:                
-                #numpy.put(temp_array,[x2+y*SCREEN_WIDTH, x1+y*SCREEN_WIDTH] , 0xff00ff)
-                temp_array[x2:x1,y].fill(0xff0000)
-            else:
-                #numpy.put(temp_array,[x1+y*SCREEN_WIDTH, x2+y*SCREEN_WIDTH] , 0xff00ff)
-                temp_array[x1:x2,y].fill(0x00ff00)
-            y += 1
+        '''
+        stil calculates polys even if not facing... bad? unnecesary?
+        '''
+        if not is_behind_poly:
+            y = hlinesdata.ystart
+            for v in vals:
+                x1, x2 = v
+                if x1 > x2:                
+                    #numpy.put(temp_array,[x2+y*SCREEN_WIDTH, x1+y*SCREEN_WIDTH] , 0xff00ff)
+                    temp_array[x2:x1,y].fill(0xff0000)
+                else:
+                    #numpy.put(temp_array,[x1+y*SCREEN_WIDTH, x2+y*SCREEN_WIDTH] , 0xff00ff)
+                    temp_array[x1:x2,y].fill(0x00ff00)
+                y += 1
         pygame.surfarray.blit_array(surface,temp_array)
 
 clock = pygame.time.Clock()
