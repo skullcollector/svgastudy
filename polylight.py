@@ -34,6 +34,15 @@ class ModelColor (object):
         self.green = green
         self.blue = blue
 
+class ModelIntensity (object):
+    red = 0
+    green = 0
+    blue = 0
+    def __init__(self, red, green, blue):
+        self.red = red
+        self.green = green
+        self.blue = blue
+
 gamma4_levs = [0,39,53,63]
 gamma64_levs = [ 0, 10, 14, 17, 19, 21, 23, 24, 26, 27, 28, 29, 31, 32, 33, 34,
                  35, 36, 37, 37, 38, 39, 40, 41, 41, 42, 43, 44, 44, 45, 46, 46,
@@ -144,7 +153,7 @@ def isbackface(polypts):
     w1 = float(polypts[-1][0] - polypts[0][0])
     w2 = float(polypts[-1][1] - polypts[0][1])
     
-    xproduct = v1*w2 - v2*w1
+    xproduct = v1*w2 - v2*w1 
     return xproduct > 0
 
 def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_hlines=False):
@@ -171,7 +180,44 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_
     else:
         polypts2d = map(partial(gen_proj_pt,xform4X4=xform4X4), polypts3d)
     return fill_convex_poly(polypts2d,drawer=plt,colour=colour,draw_hlines=draw_hlines),isbackface(txpolypts_array)
-    
+
+spot0 = {'direction': numpy.array([ [-1], [-1], [-1], [1]]),
+         'intensity': numpy.array([ [0.0], [0.75], [0.0], [1]]),}
+spot1 = {'direction': numpy.array([ [1], [1], [-1], [1] ]),
+         'intensity': numpy.array([ [0.0], [0.4], [0.0], [1.0]]),}
+spot2 = {'direction': numpy.array([ [1], [0], [0], [1.0] ]),
+         'intensity': numpy.array([ [0.0], [0.0], [0.6], [1.0]]),}
+
+spot_data = [spot0, spot1, spot2]
+spot_direction_world = [ [] for i in spot_data ]
+spot_direction_view = [ [] for i in spot_data ] 
+
+# #define DOT_PRODUCT(V1,V2) \
+#    (FixedMul(V1.X,V2.X)+FixedMul(V1.Y,V2.Y)+FixedMul(V1.Z,V2.Z))
+dot_product =lambda v1,v2: v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
+
+def set_spot_intensity(spot_idx, intensity):
+    global spot_data
+    spot_data[spot_idx]['intensity'][0] = intensity.red
+    spot_data[spot_idx]['intensity'][1] = intensity.green
+    spot_data[spot_idx]['intensity'][2] = intensity.blue
+
+def set_spot_direction(spot_idx,  xform4X4):
+    global spot_direction_world
+    global spot_direction_view
+    global spot_data
+    spot_vec = spot_data[spot_idx]['direction']
+    x_length = spot_vec[0]
+    y_length = spot_vec[1]
+    z_length = spot_vec[1]
+    length = numpy.sqrt(x_length*x_length+y_length*y_length+z_length*z_length)
+    spot_direction_world[spot_idx] = numpy.array([ [x_length/length], [y_length/length], [z_length/length], [1.0]])
+    spot_direction_view[spot_idx] = xformvec(xform4X4, spot_direction_world[spot_idx])
+    spot_direction_view[spot_idx][0] *= -1
+    spot_direction_view[spot_idx][1] *= -1
+    spot_direction_view[spot_idx][2] *= -1
+    #print spot_direction_world, spot_direction_view
+
 def render(surface,rotation=0, new_hotness=True):
     vertices = [
         numpy.array([[-30],
@@ -203,6 +249,7 @@ def render(surface,rotation=0, new_hotness=True):
 
     worldviewxform = concat_x_forms(worldform, polyform)
     draw_hlines = False if new_hotness else True
+    set_spot_direction(0,worldviewxform)
     hlinesdata,is_behind_poly = xform_and_project_poly(surface, worldviewxform, vertices, draw_hlines=draw_hlines)
     if not draw_hlines:
         vals = hlinesdata.gettuples()
@@ -216,10 +263,8 @@ def render(surface,rotation=0, new_hotness=True):
             for v in vals:
                 x1, x2 = v
                 if x1 > x2:                
-                    #numpy.put(temp_array,[x2+y*SCREEN_WIDTH, x1+y*SCREEN_WIDTH] , 0xff00ff)
                     temp_array[x2:x1,y].fill(model_colour_to_colour_index(color))
                 else:
-                    #numpy.put(temp_array,[x1+y*SCREEN_WIDTH, x2+y*SCREEN_WIDTH] , 0xff00ff)
                     temp_array[x1:x2,y].fill(model_colour_to_colour_index(color))
                 y += 1
         pygame.surfarray.blit_array(surface,temp_array)
