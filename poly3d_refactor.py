@@ -21,34 +21,88 @@ PROJECTION_RATIO =-5.0
 SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 800
 
 
+# class Coord(object):
+#     '''
+#     Immutable
+#     '''
+#     def __init__(self, x=0,y=0,z=0,w=0):
+#         dimensions = 4       # hardcoded, for now.
+#         self._numarray=numpy.zeros(3, dtype=numpy.int) 
+#         self._numarray[0] = x
+#         self._numarray[1] = y   
+#         self._numarray[2] = z
+#         # self._numarray[3] = 0 
+   
+#     def get_x(self):
+#         return self._numarray[0]
+#     def set_x(self,value):
+#         self._numarray[0] = value
+#     x = property(get_x,set_x)
+
+#     def get_y(self):
+#         return self._numarray[1]       
+#     def set_y(self,value):
+#         self._numarray[1] = value
+#     y = property(get_y,set_y)
+
+#     def get_z(self):
+#         return self._numarray[2]       
+#     def set_z(self,value):
+#         self._numarray[2] = value
+#     z = property(get_z,set_z)
+    
+#     def __add__(self, other):
+#         return self._numarray+other._numarray
+       
+#     def __sub__(self, other):
+#         return self._numarray-other._numarray 
+
+#     @property
+#     def length(self):
+#         return numpy.sqrt(numpy.sum(self._numarray*self._numarray))
+
+#     @property
+#     def square_length(self):
+#         return numpy.sum(self._numarray*self._numarray)
+
+#     @property
+#     def unit(self):
+#         retval = Coord()
+#         retval._numarray = self._numarray/self.length
+#         return retval
+
+
 class Coord(object):
     '''
     Immutable
     '''
     def __init__(self, x=0,y=0,z=0,w=0):
-        dimensions = 4       # hardcoded, for now.
-        self._numarray=numpy.zeros(dimensions, dtype=numpy.int) 
-        self._numarray[0] = x
-        self._numarray[1] = y   
-        self._numarray[2] = z
-        self._numarray[3] = 0 
-   
+        self._numarray=numpy.array([ [x],
+                                     [y],
+                                     [z]],dtype=numpy.int) 
+
+    @property
+    def as_array(self):
+        print self._numarray
+        print numpy.append(self._numarray,[[1]])
+        return numpy.append(self._numarray,[[1]])
+
     def get_x(self):
-        return self._numarray[0]
+        return self._numarray[0,0]
     def set_x(self,value):
-        self._numarray[0] = value
+        self._numarray[0,0] = value
     x = property(get_x,set_x)
 
     def get_y(self):
-        return self._numarray[1]       
+        return self._numarray[1,0]       
     def set_y(self,value):
-        self._numarray[1] = value
+        self._numarray[1,0] = value
     y = property(get_y,set_y)
 
     def get_z(self):
-        return self._numarray[2]       
+        return self._numarray[2,0]       
     def set_z(self,value):
-        self._numarray[2] = value
+        self._numarray[2,0] = value
     z = property(get_z,set_z)
     
     def __add__(self, other):
@@ -445,6 +499,9 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hline
     return hlinelist
    
 def xformvec(xform4X4, source4X1):
+    #print xform4X4,source4X1.as_array
+    #return xform4X4*source4X1.as_array
+    
     return xform4X4*source4X1
 
 def concat_x_forms(source4X4_first, source4X4_second):   
@@ -464,7 +521,10 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_
     polypts2d = []
     txpolypts_array = []
     for pt in polypts3d:
-        txpolypts_array.append(xformvec(xform4X4,pt))
+        xxx = xformvec(xform4X4,pt)
+        print xxx
+        txpolypts_array.append(xxx)
+    #print txpolypts_array
     for txpolypt in txpolypts_array:
         xval,yval,zval,wval = txpolypt
         '''
@@ -476,6 +536,7 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_
         new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
         new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
         polypts2d.append(Coord(new_x,new_y))  
+        #print new_x,new_y
     return fill_convex_poly(polypts2d,drawer=None,colour=colour,draw_hlines=draw_hlines),isbackface(txpolypts_array)
     
 def render(surface,rotation=0, new_hotness=True):
@@ -493,6 +554,7 @@ def render(surface,rotation=0, new_hotness=True):
                      [0],
                      [1]])
         ]
+    #vertices = [ Coord(-30,-15,-1), Coord(0,15,0), Coord(10,-5, 0)]
     worldform =  numpy.matrix([[1,0,0,0],
                                [0,1,0,0],
                                [0,0,1,0],
@@ -512,6 +574,7 @@ def render(surface,rotation=0, new_hotness=True):
     hlinesdata,is_behind_poly = xform_and_project_poly(surface, worldviewxform, vertices, draw_hlines=draw_hlines)
     if not draw_hlines:
         vals = hlinesdata.gettuples()
+        #print vals
         temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
         '''
         stil calculates polys even if not facing... bad? unnecesary?
@@ -519,6 +582,8 @@ def render(surface,rotation=0, new_hotness=True):
         if not is_behind_poly:
             y = hlinesdata.ystart
             for v in vals:
+                #v = v[0][0], v[1][0]
+                #print v
                 x1, x2 = v
                 if x1 > x2:                
                     temp_array[x2:x1,y].fill(0xff0000)
