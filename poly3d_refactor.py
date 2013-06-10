@@ -83,9 +83,7 @@ class Coord(object):
 
     @property
     def as_array(self):
-        print self._numarray
-        print numpy.append(self._numarray,[[1]])
-        return numpy.append(self._numarray,[[1]])
+        return numpy.append(self._numarray,numpy.array([[1]]),axis=0)
 
     def get_x(self):
         return self._numarray[0,0]
@@ -500,9 +498,8 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hline
    
 def xformvec(xform4X4, source4X1):
     #print xform4X4,source4X1.as_array
-    #return xform4X4*source4X1.as_array
-    
-    return xform4X4*source4X1
+    #return xform4X4*source4X1.as_array    
+    return xform4X4*source4X1.as_array
 
 def concat_x_forms(source4X4_first, source4X4_second):   
     return source4X4_first * source4X4_second
@@ -540,21 +537,21 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_
     return fill_convex_poly(polypts2d,drawer=None,colour=colour,draw_hlines=draw_hlines),isbackface(txpolypts_array)
     
 def render(surface,rotation=0, new_hotness=True):
-    vertices = [
-        numpy.array([[-30],
-                     [-15],
-                     [-1],
-                     [1]]),
-        numpy.array([[0],
-                     [15],
-                     [0],
-                     [1]]),
-        numpy.array([[10],
-                     [-5],
-                     [0],
-                     [1]])
-        ]
-    #vertices = [ Coord(-30,-15,-1), Coord(0,15,0), Coord(10,-5, 0)]
+    # vertices = [
+    #     numpy.array([[-30],
+    #                  [-15],
+    #                  [-1],
+    #                  [1]]),
+    #     numpy.array([[0],
+    #                  [15],
+    #                  [0],
+    #                  [1]]),
+    #     numpy.array([[10],
+    #                  [-5],
+    #                  [0],
+    #                  [1]])
+    #     ]
+    vertices = [ Coord(-30,-15,-1), Coord(0,15,0), Coord(10,-5, 0)]
     worldform =  numpy.matrix([[1,0,0,0],
                                [0,1,0,0],
                                [0,0,1,0],
