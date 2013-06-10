@@ -20,7 +20,7 @@ import numpy
 PROJECTION_RATIO =-5.0
 SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 800
 
-class Coord(object):
+class Vector(object):
     '''
     Immutable
     '''
@@ -62,6 +62,9 @@ class Coord(object):
     def __sub__(self, other):
         return self._numarray-other._numarray 
 
+    def dot(self,other):
+        return self._numarray.dot(other)
+
     @property
     def length(self):
         return numpy.sqrt(numpy.sum(self._numarray*self._numarray))
@@ -72,55 +75,94 @@ class Coord(object):
 
     @property
     def unit(self):
-        retval = Coord()        
+        retval = Vector()
         retval._numarray = self._numarray/self.length
         return retval
+
+class Coord(Vector):
+    pass
+ 
+
+class Polygon(list):  
+
+    def transform(self, xform4X4):
+        tx_pts = Polygon()
+        for pt in self:
+            tx_pts.append(pt.transform(xform4X4))
+            #import pdb; pdb.set_trace()
+            #print type(tx_pts[-1])
+        return tx_pts
+
+    def gen_vertices(self,backward=False):
+        _circdec = lambda i,length: (length+(i-1))%length
+        _circinc = lambda i,length: (i+1)%length
+
+        '''
+        should use itertools.cycle, but want to get into C mode just now..
+        v = vertice_iterate("Test string 123",True)  # True means reverse iterate
+        for i in range(0,100):
+            print v.next()
     
-# class Rasterizer(object):
-
-circdec = lambda i,length: (length+(i-1))%length
-circinc = lambda i,length: (i+1)%length
-dxdy = lambda start,stop : (stop.x - start.x, stop.y - start.y)
-def vertice_iterate(vertices,backward=False):
-    '''
-    should use itertools.cycle, but want to get into C mode just now..
-    v = vertice_iterate("Test string 123",True)  # True means reverse iterate
-    for i in range(0,100):
-        print v.next()
-
-    '''
-    global circdec, circinc
-
-    length = len(vertices)
-    i = 0 if not backward else length-1
-    while True:        
-        yield vertices[i]
-        if backward:
-            i = circdec(i,length)
-        else:
-            i = circinc(i,length)
+        '''
+    
+        length = len(self)
+        i = 0 if not backward else length-1
+        while True:        
+            yield self[i]
+            if backward:
+                i = _circdec(i,length)
+            else:
+                i = _circinc(i,length)
 
 
-def find_y_bounds(vertices):
-    length = len(vertices)
-    if length ==0:
-        return None
+    def find_y_bounds(self):
+        length = len(self)
+        if length ==0:
+            return None
+        
+        at_min_y = at_max_y = self[0]  # at at_min_y or at at_max_y
+        min_idx = max_idx = 0
+        i = 0
+        vgen = self.gen_vertices() #vertice_iterate(vertices)
+        for i in range(0,length):
+            v = vgen.next()
+            if  v.y < at_min_y.y:
+                at_min_y = v
+                min_idx = i
+            elif v.y > at_max_y.y:
+                at_max_y = v
+                max_idx = i
+            i +=1
+        return min_idx, max_idx
 
-    at_min_y = at_max_y = vertices[0]  # at at_min_y or at at_max_y
-    min_idx = max_idx = 0
-    i = 0
-    vgen = vertice_iterate(vertices)
-    for i in range(0,length):
-        v = vgen.next()
-        if  v.y < at_min_y.y:
-            at_min_y = v
-            min_idx = i
-        elif v.y > at_max_y.y:
-            at_max_y = v
-            max_idx = i
-        i +=1
-    return min_idx, max_idx
+        
 
+    @property
+    def facing(self):
+        v = self[1] - self[0]
+        w = self[-1] - self[0]
+        return (v[0]*w[1] - v[1]*w[0])[0,0] < 0
+
+    @property
+    def normal(self):
+        v = self[1] - self[0]
+        w = self[-1] - self[0]
+
+        return Vector((v[1]*w[2] - v[2]*w[1])[0,0],
+                      (v[2]*w[0] - v[0]*w[2])[0,0],
+                      (v[0]*w[1] - v[1]*w[0])[0,0])
+
+
+    def project(self):
+        poly2d = Polygon()
+        for pt in self:
+            xval,yval,zval,wval = pt
+            new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
+            new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
+            poly2d.append(Coord(new_x,new_y))
+        return poly2d
+                        
+       
 
 class HLineList(object):
     def __init__(self,ystart=0):
@@ -273,12 +315,16 @@ def fill_convex_poly(vertices, debug=False, hlinelist = None):
       - when top is flat.
       
     '''
+    circdec = lambda i,length: (length+(i-1))%length
+    circinc = lambda i,length: (i+1)%length
+    dxdy = lambda start,stop : (stop.x - start.x, stop.y - start.y)
+
     # GPBB Chapter 38
     # global circinc,circdec
     length = len(vertices)
     if length == 0:
         return None
-    miny_maxy_idxes = find_y_bounds(vertices)
+    miny_maxy_idxes =  vertices.find_y_bounds() #find_y_bounds(vertices)
     if not miny_maxy_idxes:
         return None
     miny_left_idx,maxy_idx = miny_maxy_idxes
@@ -374,13 +420,8 @@ def fill_convex_poly(vertices, debug=False, hlinelist = None):
     dec_if_flat = 1 if flat else 0
     y_start = miny_point.y + 1 - dec_if_flat
     y_length = vertices[maxy_idx].y - vertices[miny_left_idx].y - 1 + dec_if_flat
-    if hlinelist is None:
-        hlinelist = HLineList(y_start)
-    else:
-        # this case doesnt work yet...
-        hlinelist.y_start = y_start
-        #hlinelist.length = y_length
-        
+    hlinelist = HLineList(y_start)
+
     prev_idx = current_idx = miny_left_idx
     skipfirst = 0 if flat else 1    
     while current_idx != maxy_idx:
@@ -412,70 +453,55 @@ def fill_convex_poly(vertices, debug=False, hlinelist = None):
 
     return hlinelist  
 
-def isbackface(polypts):
-    v1 = float(polypts[1][0] - polypts[0][0])
-    v2 = float(polypts[1][1] - polypts[0][1])
-    w1 = float(polypts[-1][0] - polypts[0][0])
-    w2 = float(polypts[-1][1] - polypts[0][1])
-    
-    xproduct = v1*w2 - v2*w1
-    return xproduct > 0
 
 def xform_and_project_poly(surface, xform4X4, polypts3d):
-    polypts2d = []
-    txpolypts_array = []
-    for pt in polypts3d:
-        #txpolypts_array.append(xformvec(xform4X4,pt))
-        txpolypts_array.append(pt.transform(xform4X4))
+    polypts2d = Polygon()
+    #txpolypts_array = Polygon()
+    txpolypts_array= polypts3d.transform(xform4X4)
+    polypts2d = txpolypts_array.project()
 
-    for txpolypt in txpolypts_array:
-        xval,yval,zval,wval = txpolypt
-        '''
-        so far theory is:
-        we start at center point x,y = SCREEN_WIDTH/2, SCREEN_HEIGHT/2
-        if the 3d point goes to the left or right it moves by by xval/zval (zval larger, perceived xposition further away)
-        if the 3d point goes to up or down it moves by by yval/zval.
-        '''
-        new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
-        new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
-        polypts2d.append(Coord(new_x,new_y))
-    return fill_convex_poly(polypts2d),isbackface(txpolypts_array)
+    return fill_convex_poly(polypts2d),not txpolypts_array.facing 
 
-vertices = [ Coord(-30,-15,-1), Coord(0,15,0), Coord(10,-5, 0)]
-    
+vertices = Polygon([ Coord(-30,-15,-1), Coord(0,15,0), Coord(10,-5, 0)])
+
+def rotate_poly_matrix(rotation):
+    cos_rotation = cos(rotation)
+    sin_rotation = sin(rotation)
+    polyform     = numpy.matrix([[cos_rotation,            0.0, sin_rotation,    0.0],
+                                 [0.0,                     1.0, 0.0,             0.0],
+                                 [-sin_rotation,           0.0, cos_rotation, -180.0],
+                                 [0.0,                     0.0, 0.0,             1.0] ])
+    return polyform
+
 def render(surface,rotation=0):
     worldform =  numpy.matrix([[1,0,0,0],
                                [0,1,0,0],
                                [0,0,1,0],
                                [0,0,0,1]])
 
-    polyform =    numpy.matrix([[1.0, 0.0, 0.0, 0.0],
-                                [0.0, 1.0, 0.0, 0.0],
-                                [0.0, 0.0, 1.0, -180.0],
-                                [0.0, 0.0, 0.0, 1.0] ])
+    
 
-    polyform[0,0] = polyform[2,2] = cos(rotation)
-    polyform[0,2] = sin(rotation)
-    polyform[2,0] = -polyform[0,2]
+    polyform = rotate_poly_matrix(rotation)
 
-    worldviewxform = worldform * polyform
+    worldviewxform =  polyform * worldform
+
     hlinesdata,is_behind_poly = xform_and_project_poly(surface, worldviewxform, vertices)
-    if True:
-        vals = hlinesdata.gettuples()
-        temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
-        '''
-        stil calculates polys even if not facing... bad? unnecesary?
-        '''
-        if not is_behind_poly:
-            y = hlinesdata.ystart
-            for v in vals:
-                x1, x2 = v
-                if x1 > x2:                
-                    temp_array[x2:x1,y].fill(0xff0000)
-                else:
-                    temp_array[x1:x2,y].fill(0x00ff00)
-                y += 1
-        pygame.surfarray.blit_array(surface,temp_array)
+    vals = hlinesdata.gettuples()
+    #print type(vals[0])
+    temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
+    '''
+    stil calculates polys even if not facing... bad? unnecesary?
+    '''
+    if not is_behind_poly:
+        y = hlinesdata.ystart
+        for v in vals:
+            x1, x2 = v
+            if x1 > x2:                
+                temp_array[x2:x1,y].fill(0xff0000)
+            else:
+                temp_array[x1:x2,y].fill(0x00ff00)
+            y += 1
+    pygame.surfarray.blit_array(surface,temp_array)
 
 clock = pygame.time.Clock()
 def main():
