@@ -43,6 +43,9 @@ class ModelIntensity (object):
         self.green = green
         self.blue = blue
 
+    def __repr__(self):
+        return "Intensity <%s,%s,%s>"%(self.red,self.green,self.blue)
+
 gamma4_levs = [0,39,53,63]
 gamma64_levs = [ 0, 10, 14, 17, 19, 21, 23, 24, 26, 27, 28, 29, 31, 32, 33, 34,
                  35, 36, 37, 37, 38, 39, 40, 41, 41, 42, 43, 44, 44, 45, 46, 46,
@@ -260,7 +263,7 @@ def get_normal(pts, baseidx, vec0, vec1):
     return cross_product
 
 def xform_and_project_poly_with_light(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_hlines=False):
-
+    global model_intensity
     model_colour = ModelColour(0xff,0xff,0xff)
 
     plt = PygamePlotter(surface,default_colour=colour)
@@ -282,16 +285,19 @@ def xform_and_project_poly_with_light(surface, xform4X4, polypts3d, colour = 0x0
 
         
         normal = get_normal(txpolypts_array, 0, 1, 2)  # probably need to be cleverer for non triangles.
+        #print normal
         for spot in spot_direction_view[1:]:
-            #print spot,'....', list(spot_direction_view
+            #print spot,'....', normal
             dot_prod = dot_product(normal,spot)
-            #print dot_prod,'..'
+            print dot_prod,'..'
             if dot_prod > 0:
+                #import pdb; pdb.set_trace()
                 #print '----',spot_direction_view,dot_prod;
                 model_intensity.red += spot[0]*dot_prod;
                 model_intensity.green += spot[1]*dot_prod;
                 model_intensity.blue += spot[2]*dot_prod;
                 model_colour = intensity_adj_col(model_colour,model_intensity)
+            #print model_intensity
 
         for txpolypt in txpolypts_array:
             xval,yval,zval,wval = txpolypt
@@ -366,7 +372,8 @@ clock = pygame.time.Clock()
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT),0,8)
-
+    global model_intensity
+    model_intensity = ModelIntensity(0.0,0.1,0.0)
 
     running = True
     rotation = 0
