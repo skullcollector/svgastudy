@@ -456,13 +456,16 @@ def fill_convex_poly(vertices, debug=False, hlinelist = None):
 
 def xform_and_project_poly(surface, xform4X4, polypts3d):
     polypts2d = Polygon()
-    #txpolypts_array = Polygon()
     txpolypts_array= polypts3d.transform(xform4X4)
-    polypts2d = txpolypts_array.project()
+    retvals = None
+    if txpolypts_array.facing:
+        polypts2d = txpolypts_array.project()
+        retvals = fill_convex_poly(polypts2d)
 
-    return fill_convex_poly(polypts2d),not txpolypts_array.facing 
+    return retvals
 
 vertices = Polygon([ Coord(-30,-15,-1), Coord(0,15,0), Coord(10,-5, 0)])
+vertices2 = Polygon([ Coord(-30,-15,-20), Coord(0,15,-10), Coord(10,-5, -10)])
 
 def rotate_poly_matrix(rotation):
     cos_rotation = cos(rotation)
@@ -485,16 +488,25 @@ def render(surface,rotation=0):
 
     worldviewxform =  polyform * worldform
 
-    hlinesdata,is_behind_poly = xform_and_project_poly(surface, worldviewxform, vertices)
-    vals = hlinesdata.gettuples()
-    #print type(vals[0])
+    hlinesdata = xform_and_project_poly(surface, worldviewxform, vertices)
+    # hlinesdata2 = xform_and_project_poly(surface, worldviewxform, vertices2)
+
     temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
-    '''
-    stil calculates polys even if not facing... bad? unnecesary?
-    '''
-    if not is_behind_poly:
+
+    # if hlinesdata2:
+    #     y = hlinesdata2.ystart
+    #     for v in hlinesdata2.gettuples():
+    #         x1, x2 = v
+    #         if x1 > x2:                
+    #             temp_array[x2:x1,y].fill(0x00ff00)
+    #         else:
+    #             temp_array[x1:x2,y].fill(0x00ff00)
+    #         y += 1
+    
+
+    if hlinesdata:
         y = hlinesdata.ystart
-        for v in vals:
+        for v in hlinesdata.gettuples():
             x1, x2 = v
             if x1 > x2:                
                 temp_array[x2:x1,y].fill(0xff0000)
