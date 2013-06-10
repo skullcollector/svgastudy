@@ -5,16 +5,15 @@ I need refactor of poly3d.
 
 I want to focus on simplifying :
 
-- remove dependency on gfxutil
-- Coordinate types: Object --> World --> View --> Screen (the pipeline?)
+- remove dependency on gfxutil [DONE]
 - simplify DDA (like bresenham) to use as module.
 - USE ONLY 3 points or numpy arrays. This mixing is causeing confusion
+- Coordinate types: Object --> World --> View --> Screen (the pipeline?)
 - SIMPLE CODE!!!
 
 '''
 import pygame
 from pygame.locals import *
-#from gfxutil import *
 from math import pi, cos,sin
 import numpy
 
@@ -26,39 +25,61 @@ class Coord(object):
     '''
     Immutable
     '''
-    x = 0;
-    y = 0;
-    def __init__(self, x,y):
-        self.x, self.y = x,y
+    def __init__(self, x=0,y=0,z=0,w=0):
+        dimensions = 4       # hardcoded, for now.
+        self._numarray=numpy.zeros(dimensions, dtype=numpy.int) 
+        self._numarray[0] = x
+        self._numarray[1] = y   
+        self._numarray[2] = z
+        self._numarray[3] = 0 
+   
+    def get_x(self):
+        return self._numarray[0]
+    def set_x(self,value):
+        self._numarray[0] = value
+    x = property(get_x,set_x)
 
-    def __str__(self):
-        return "<%d,%d>"%(self.x, self.y)
+    def get_y(self):
+        return self._numarray[1]       
+    def set_y(self,value):
+        self._numarray[1] = value
+    y = property(get_y,set_y)
 
-    def __repr__(self):
-        return "<%d,%d>"%(self.x, self.y)
-
-    def add(self, x = 0, y = 0):
-        return Coord(self.x+x, self.y+y)
-
+    def get_z(self):
+        return self._numarray[2]       
+    def set_z(self,value):
+        self._numarray[2] = value
+    z = property(get_z,set_z)
+    
     def __add__(self, other):
-        return self.add(x=other.x, y=other.y)
-
-    def sub(self, x= 0, y = 0):
-        return Coord(self.x-x, self.y-y)
-
+        return self._numarray+other._numarray
+       
     def __sub__(self, other):
-        return self.sub(x=other.x, y=other.y)
+        return self._numarray-other._numarray 
+
+    @property
+    def length(self):
+        return numpy.sqrt(numpy.sum(self._numarray*self._numarray))
+
+    @property
+    def square_length(self):
+        return numpy.sum(self._numarray*self._numarray)
+
+    @property
+    def unit(self):
+        retval = Coord()
+        retval._numarray = self._numarray/self.length
+        return retval
+
+
 
 circdec = lambda i,length: (length+(i-1))%length
 circinc = lambda i,length: (i+1)%length
 dxdy = lambda start,stop : (stop.x - start.x, stop.y - start.y)
-#close_enough = lambda actualpnt, calcpnt: sqrt((actualpnt.x-calcpnt.x)**2 + (actualpnt.y-calcpnt.y)**2) < 2
-#practically_nothing = lambda val : abs(val) < 0.1
-
-def vertirate(vertices,backward=False):
+def vertice_iterate(vertices,backward=False):
     '''
     should use itertools.cycle, but want to get into C mode just now..
-    v = vertirate("Test string 123",True)  # True means reverse iterate
+    v = vertice_iterate("Test string 123",True)  # True means reverse iterate
     for i in range(0,100):
         print v.next()
 
@@ -84,7 +105,7 @@ def find_y_bounds(vertices):
     at_min_y = at_max_y = vertices[0]  # at at_min_y or at at_max_y
     min_idx = max_idx = 0
     i = 0
-    vgen = vertirate(vertices)
+    vgen = vertice_iterate(vertices)
     for i in range(0,length):
         v = vgen.next()
         if  v.y < at_min_y.y:
@@ -99,9 +120,7 @@ def find_y_bounds(vertices):
 
 
 class HLineList(object):
-    def __init__(self,ystart=0, length=0, drawer=None, use_floats=False, malloc_size=20000):
-        self.__hlines_start = [] # extra storage, debugging
-        self.__hlines_stop = []  # extra storage, debugging
+    def __init__(self,ystart=0, length=0, drawer=None, use_floats=False):
         self.__hlines_tuples = None
         self.ystart = ystart
         self.length = length
@@ -110,11 +129,7 @@ class HLineList(object):
         if length <=0:
             self.__hlines_tuples = [[0,0]]
         else:
-            #self.__hlines_tuples = [[0,0] for i in range(malloc_size)] # fake "malloc"
             self.__hlines_tuples = [[None,None]] # fake "malloc"
-
-        self.drawer = drawer
-        self.edgecalc = self.__add_edge_float if use_floats else self.__add_edge_int
 
     def gettuples(self):
         return self.__hlines_tuples[:]
@@ -134,12 +149,11 @@ class HLineList(object):
             raise Exception("what? This is not supposed to happen!")
         self.stopcount += 1         
 
-    def __add_edge_int(self,
-                       x1,y1,
-                       x2,y2,
-                       skipfirst = 0,
-                       leftedge=False,
-                       char=None):        
+    def add_edge_int(self,
+                     x1,y1,
+                     x2,y2,
+                     skipfirst = 0,
+                     leftedge=False):
         # Chapter 39 GPBB
         edge_to_add_to = self.addstart if leftedge else self.addstop
         
@@ -153,7 +167,6 @@ class HLineList(object):
         if width == 0:
             ''' vertical '''
 
-            #for i in range(height-skipfirst,-1,-1):
             i = height - skipfirst
             while i > 0:
                 i -= 1
@@ -164,7 +177,6 @@ class HLineList(object):
 
             x1 = x1+xincr if skipfirst else x1
 
-            #for i in range(height-skipfirst,-1,-1):
             i = height - skipfirst
             while i > 0:
                 i -= 1
@@ -173,8 +185,7 @@ class HLineList(object):
 
         elif height > width:
             ''' y dominant '''
-
-            # if >= 0 left -> right else right -> left
+            
             error = 0 if dx >= 0 else -height +1                  
             if skipfirst != 0:
                 error += width
@@ -196,11 +207,9 @@ class HLineList(object):
 
         else:
             ''' edge is X dominant '''            
-            #x_dom_incr = int(floor(1.0*width/height)*xincr)  # what? Floats????
             x_dom_incr = (width/height)*xincr  # width > height (ints=> 1, 2, etc)
             error_incr = width % height # width > height   ( 0 1 2... height-1, 0, 1...)
 
-            # if >= 0 left -> right else right -> left
             error = 0 if dx >= 0 else -height +1
             if skipfirst != 0:
                 x1 += x_dom_incr
@@ -234,119 +243,23 @@ class HLineList(object):
                     x1 += xincr
                     error -= height
 
-    def __add_edge_float(self,                   
-                         x1,y1,
-                         x2,y2,
-                         skipfirst = 0,
-                         leftedge=False,
-                         char=None):    
-        # GPBB Chapter 38    
-        # Not used, but left to show the basic idea
-        dy = y2-y1
-        dx = x2-x1
-        if dy <= 0:
-            return
-        invM = (1.0*dx)/dy
-        
-        for y in range(y1+skipfirst, y2):
-            x = int(ceil(invM*(y-y1)+x1))
-            if leftedge:
-                self.addstart(x)
-            else:
-                self.addstop(x)
-        
-            # if self.drawer:
-            #     self.drawer.putchar(x,y,char)
-
     def scanedge_left(self,
                       x1,y1,
                       x2,y2,
                       skipfirst = 0):
-        self.edgecalc(x1,y1,
-                      x2,y2,
-                      skipfirst = skipfirst,
-                      leftedge=True,
-                      char='$')
-
-
+        self.add_edge_int(x1,y1,
+                          x2,y2,
+                          skipfirst = skipfirst,
+                          leftedge=True)
+                  
     def scanedge_right(self,
                       x1,y1,
                       x2,y2,
                       skipfirst = 0):
-        self.edgecalc(x1,y1,
-                      x2,y2,
-                      skipfirst = skipfirst,
-                      leftedge=False,
-                      char='&')
-
-
-    def draw_hlines(self,use_tuples=True,colour=0x00ff00):
-        if not self.drawer:
-            raise Exception("Nothing to draw hlines with")
-            
-        length_start = len(self.__hlines_start)
-        length_stop = len(self.__hlines_stop)
-        if length_start != length_stop :
-            # not sure about this algo yet...
-            raise Exception("Something wrong with your algorithm, stop points(%d) != start points(%d)"%(length_stop,length_start))
-
-        if True:
-            tuples = self.gettuples()
-            put_pixel = self.drawer.put_pixel
-            y = self.ystart
-            def per_tuple(idx_and_tuple,local_vals):
-                idx,tple = idx_and_tuple  # thanks enumerate
-                xstart,xstop = tple
-                y = local_vals['y']+idx
-                if xstart < xstop:
-                    x_range = xrange(xstart,xstop)
-                else:
-                    x_range = xrange(xstop,xstart)   
-                map(partial(put_pixel, y=y, colour=colour),x_range)                
-
-            map(partial(per_tuple,local_vals=locals()), enumerate(tuples)) # local_vals for y
-
-        if False:
-            t = self.gettuples()
-            put_pixel = self.drawer.put_pixel
-            y = self.ystart
-            for i in range(0,min([length_start,length_stop])):
-                xstart,xstop = t[i]
-                y += 1             
-                if xstart < xstop:
-                    x_range = range(xstart,xstop)
-                else:
-                    x_range = range(xstop,xstart)   
-                map(partial(put_pixel, y=y, colour=colour),[xx for xx in x_range])
-
-        if False:
-            t = self.gettuples()
-            put_pixel = self.drawer.put_pixel
-            for i in range(0,min([length_start,length_stop])):
-
-                xstart,xstop = t[i]
-                y = self.ystart+i                
-                if xstart < xstop:
-                    map(partial(put_pixel, y=y, colour=colour),[xx for xx in range(xstart,xstop)])
-                else:
-                    map(partial(put_pixel, y=y, colour=colour),[xx for xx in range(xstop,xstart)])
-
-        #else:
-        if False:
-            t = self.gettuples()
-            for i in range(0,min([length_start,length_stop])):
-
-                xstart,xstop = t[i]
-                y = self.ystart+i                
-                if xstart < xstop:
-                    for xx in range(xstart,xstop):
-                        self.drawer.put_pixel(xx,y,colour=0xff0000)
-                else:
-                    for xx in range(xstop, xstart):
-                        self.drawer.put_pixel(xx,y,colour=0xff0000)
-            
-
-
+        self.add_edge_int(x1,y1,
+                          x2,y2,
+                          skipfirst = skipfirst,
+                          leftedge=False)
 
 def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hlinelist = None, draw_hlines=True):
     '''
@@ -362,7 +275,7 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hline
       
     '''
     # GPBB Chapter 38
-    global circinc,circdec
+    # global circinc,circdec
     length = len(vertices)
     if length == 0:
         return None
@@ -530,7 +443,6 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hline
         hlinelist.draw_hlines(colour=colour)
 
     return hlinelist
-
    
 def xformvec(xform4X4, source4X1):
     return xform4X4*source4X1
