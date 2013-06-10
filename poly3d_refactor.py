@@ -7,7 +7,7 @@ I want to focus on simplifying :
 
 - remove dependency on gfxutil [DONE]
 - simplify DDA (like bresenham) to use as module.
-- USE ONLY 3 points or numpy arrays. This mixing is causeing confusion
+- USE ONLY 3 points or numpy arrays. This mixing is causeing confusion [Done?]
 - Coordinate types: Object --> World --> View --> Screen (the pipeline?)
 - SIMPLE CODE!!!
 
@@ -20,58 +20,6 @@ import numpy
 PROJECTION_RATIO =-5.0
 SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 800
 
-
-# class Coord(object):
-#     '''
-#     Immutable
-#     '''
-#     def __init__(self, x=0,y=0,z=0,w=0):
-#         dimensions = 4       # hardcoded, for now.
-#         self._numarray=numpy.zeros(3, dtype=numpy.int) 
-#         self._numarray[0] = x
-#         self._numarray[1] = y   
-#         self._numarray[2] = z
-#         # self._numarray[3] = 0 
-   
-#     def get_x(self):
-#         return self._numarray[0]
-#     def set_x(self,value):
-#         self._numarray[0] = value
-#     x = property(get_x,set_x)
-
-#     def get_y(self):
-#         return self._numarray[1]       
-#     def set_y(self,value):
-#         self._numarray[1] = value
-#     y = property(get_y,set_y)
-
-#     def get_z(self):
-#         return self._numarray[2]       
-#     def set_z(self,value):
-#         self._numarray[2] = value
-#     z = property(get_z,set_z)
-    
-#     def __add__(self, other):
-#         return self._numarray+other._numarray
-       
-#     def __sub__(self, other):
-#         return self._numarray-other._numarray 
-
-#     @property
-#     def length(self):
-#         return numpy.sqrt(numpy.sum(self._numarray*self._numarray))
-
-#     @property
-#     def square_length(self):
-#         return numpy.sum(self._numarray*self._numarray)
-
-#     @property
-#     def unit(self):
-#         retval = Coord()
-#         retval._numarray = self._numarray/self.length
-#         return retval
-
-
 class Coord(object):
     '''
     Immutable
@@ -80,10 +28,15 @@ class Coord(object):
         self._numarray=numpy.array([ [x],
                                      [y],
                                      [z]],dtype=numpy.int) 
-
-    @property
-    def as_array(self):
+    
+    def get_array(self):
         return numpy.append(self._numarray,numpy.array([[1]]),axis=0)
+    def set_array(self,input_array):        
+        self._numarray = numpy.array(input_array[:3])
+    array = property(get_array,set_array)
+
+    def transform(self, xform4X4):
+        return xform4X4*self.array
 
     def get_x(self):
         return self._numarray[0,0]
@@ -119,11 +72,11 @@ class Coord(object):
 
     @property
     def unit(self):
-        retval = Coord()
+        retval = Coord()        
         retval._numarray = self._numarray/self.length
         return retval
-
-
+    
+# class Rasterizer(object):
 
 circdec = lambda i,length: (length+(i-1))%length
 circinc = lambda i,length: (i+1)%length
@@ -140,8 +93,7 @@ def vertice_iterate(vertices,backward=False):
 
     length = len(vertices)
     i = 0 if not backward else length-1
-    while True:
-        
+    while True:        
         yield vertices[i]
         if backward:
             i = circdec(i,length)
@@ -170,18 +122,13 @@ def find_y_bounds(vertices):
     return min_idx, max_idx
 
 
-
 class HLineList(object):
-    def __init__(self,ystart=0, length=0, drawer=None, use_floats=False):
+    def __init__(self,ystart=0):
         self.__hlines_tuples = None
         self.ystart = ystart
-        self.length = length
         self.startcount = 0
         self.stopcount = 0
-        if length <=0:
-            self.__hlines_tuples = [[0,0]]
-        else:
-            self.__hlines_tuples = [[None,None]] # fake "malloc"
+        self.__hlines_tuples = [[None,None]] 
 
     def gettuples(self):
         return self.__hlines_tuples[:]
@@ -313,7 +260,7 @@ class HLineList(object):
                           skipfirst = skipfirst,
                           leftedge=False)
 
-def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hlinelist = None, draw_hlines=True):
+def fill_convex_poly(vertices, debug=False, hlinelist = None):
     '''
     Basic idea,
     - use everything as indexes.
@@ -359,14 +306,6 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hline
             print "not FLAT", vertices[miny_left_idx], vertices[miny_right_idx]
         flat = False
 
-    if drawer and debug:
-        # for a square the X and 0 will be
-        # on opposite sides 
-        # compare poly1 (square like) vs poly4 (diamond like)
-        rv = vertices[miny_right_idx]
-        lv = vertices[miny_left_idx]
-        drawer.putchar(rv.x,rv.y,'X')
-        drawer.putchar(lv.x,lv.y,'O')
         
     left_edge_dir = -1  # left edge indexing direction
     if flat:
@@ -378,15 +317,6 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hline
     next_idx = circdec(miny_right_idx,length)    
     previous_idx = circinc(miny_left_idx,length)    
 
-    if drawer and debug:
-        # for a square the X and 0 will be
-        # on opposite sides 
-        # compare poly1 (square like) vs poly4 (diamond like)
-        nrv = vertices[next_idx]
-        plv = vertices[previous_idx]
-
-        # drawer.putchar(nrv.x,nrv.y,'Xn')
-        # drawer.putchar(plv.x,plv.y,'Op')
 
     # gradient from next to center vs
     # gradient from previous to center
@@ -445,12 +375,11 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hline
     y_start = miny_point.y + 1 - dec_if_flat
     y_length = vertices[maxy_idx].y - vertices[miny_left_idx].y - 1 + dec_if_flat
     if hlinelist is None:
-        hlinelist = HLineList(y_start,y_length,drawer=drawer,use_floats=False)
+        hlinelist = HLineList(y_start)
     else:
         # this case doesnt work yet...
         hlinelist.y_start = y_start
-        hlinelist.length = y_length
-        hlinelist.drawer = drawer
+        #hlinelist.length = y_length
         
     prev_idx = current_idx = miny_left_idx
     skipfirst = 0 if flat else 1    
@@ -481,47 +410,24 @@ def fill_convex_poly(vertices,drawer=None, debug=False, colour = 0xff0000, hline
         skipfirst = 0
         prev_idx = current_idx
 
-    if drawer and debug:
-        tuples = hlinelist.gettuples()
-        for i in range(hlinelist.startcount):
-            x = tuples[i][0]
-            # drawer.putchar(x,hlinelist.ystart+i,'S')
-
-        for i in range(hlinelist.stopcount):
-            x = tuples[i][1]
-            # drawer.putchar(x,hlinelist.ystart+i,'P')
-
-    if draw_hlines:
-        hlinelist.draw_hlines(colour=colour)
-
-    return hlinelist
-   
-def xformvec(xform4X4, source4X1):
-    #print xform4X4,source4X1.as_array
-    #return xform4X4*source4X1.as_array    
-    return xform4X4*source4X1.as_array
-
-def concat_x_forms(source4X4_first, source4X4_second):   
-    return source4X4_first * source4X4_second
+    return hlinelist  
 
 def isbackface(polypts):
     v1 = float(polypts[1][0] - polypts[0][0])
     v2 = float(polypts[1][1] - polypts[0][1])
-
     w1 = float(polypts[-1][0] - polypts[0][0])
     w2 = float(polypts[-1][1] - polypts[0][1])
     
     xproduct = v1*w2 - v2*w1
     return xproduct > 0
 
-def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_hlines=False):
+def xform_and_project_poly(surface, xform4X4, polypts3d):
     polypts2d = []
     txpolypts_array = []
     for pt in polypts3d:
-        xxx = xformvec(xform4X4,pt)
-        print xxx
-        txpolypts_array.append(xxx)
-    #print txpolypts_array
+        #txpolypts_array.append(xformvec(xform4X4,pt))
+        txpolypts_array.append(pt.transform(xform4X4))
+
     for txpolypt in txpolypts_array:
         xval,yval,zval,wval = txpolypt
         '''
@@ -532,26 +438,12 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, colour = 0x00ff00,draw_
         '''
         new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
         new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
-        polypts2d.append(Coord(new_x,new_y))  
-        #print new_x,new_y
-    return fill_convex_poly(polypts2d,drawer=None,colour=colour,draw_hlines=draw_hlines),isbackface(txpolypts_array)
+        polypts2d.append(Coord(new_x,new_y))
+    return fill_convex_poly(polypts2d),isbackface(txpolypts_array)
+
+vertices = [ Coord(-30,-15,-1), Coord(0,15,0), Coord(10,-5, 0)]
     
-def render(surface,rotation=0, new_hotness=True):
-    # vertices = [
-    #     numpy.array([[-30],
-    #                  [-15],
-    #                  [-1],
-    #                  [1]]),
-    #     numpy.array([[0],
-    #                  [15],
-    #                  [0],
-    #                  [1]]),
-    #     numpy.array([[10],
-    #                  [-5],
-    #                  [0],
-    #                  [1]])
-    #     ]
-    vertices = [ Coord(-30,-15,-1), Coord(0,15,0), Coord(10,-5, 0)]
+def render(surface,rotation=0):
     worldform =  numpy.matrix([[1,0,0,0],
                                [0,1,0,0],
                                [0,0,1,0],
@@ -559,19 +451,17 @@ def render(surface,rotation=0, new_hotness=True):
 
     polyform =    numpy.matrix([[1.0, 0.0, 0.0, 0.0],
                                 [0.0, 1.0, 0.0, 0.0],
-                                [0.0, 0.0, 1.0, -140.0],
+                                [0.0, 0.0, 1.0, -180.0],
                                 [0.0, 0.0, 0.0, 1.0] ])
 
     polyform[0,0] = polyform[2,2] = cos(rotation)
     polyform[0,2] = sin(rotation)
     polyform[2,0] = -polyform[0,2]
 
-    worldviewxform = concat_x_forms(worldform, polyform)
-    draw_hlines = False if new_hotness else True
-    hlinesdata,is_behind_poly = xform_and_project_poly(surface, worldviewxform, vertices, draw_hlines=draw_hlines)
-    if not draw_hlines:
+    worldviewxform = worldform * polyform
+    hlinesdata,is_behind_poly = xform_and_project_poly(surface, worldviewxform, vertices)
+    if True:
         vals = hlinesdata.gettuples()
-        #print vals
         temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
         '''
         stil calculates polys even if not facing... bad? unnecesary?
@@ -579,8 +469,6 @@ def render(surface,rotation=0, new_hotness=True):
         if not is_behind_poly:
             y = hlinesdata.ystart
             for v in vals:
-                #v = v[0][0], v[1][0]
-                #print v
                 x1, x2 = v
                 if x1 > x2:                
                     temp_array[x2:x1,y].fill(0xff0000)
