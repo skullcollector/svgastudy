@@ -624,9 +624,6 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, debug=False):
 
     return retvals
 
-#vertices2 = Polygon([ Coord(-10,-10,-30), Coord(0,10,-20), Coord(10,-5, -20)])
-
-#vertices = Polygon([ Coord(-10,-10,-20), Coord(0,10,-10), Coord(10,-5, -10)])
 vertices = Polygon([ Coord(-10,0,-10), Coord(0,10,-10), Coord(10,0,-10), Coord(0,-10,-10)])
 vertices2 = Polygon([ Coord(-10,0,-20), Coord(0,10,-20), Coord(10,0,-20), Coord(0,-10,-20)])
 
