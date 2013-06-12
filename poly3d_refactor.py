@@ -43,7 +43,9 @@ class Vector(object):
     array = property(get_array,set_array)
 
     def transform(self, xform4X4):
-        return xform4X4*self.array
+        v = Vector()
+        v.array = xform4X4*self.array
+        return v
 
     def get_x(self):
         return self._numarray[0,0]
@@ -70,7 +72,7 @@ class Vector(object):
         return self._numarray-other._numarray 
 
     def dot(self,other):
-        return self._numarray.T[0].dot(other._numarray.T[0])  # sigh.. ugly
+        return self._numarray.T[0].dot(other._numarray.T[0])[0]  # sigh.. ugly
 
     @property
     def length(self):
@@ -148,22 +150,22 @@ class Polygon(list):
     def facing(self):
         v = self[1] - self[0]
         w = self[-1] - self[0]
-        return (v[0]*w[1] - v[1]*w[0])[0,0] < 0
+        return (v[0]*w[1] - v[1]*w[0]) < 0
 
     @property
     def normal(self):
         v = self[1] - self[0]
         w = self[-1] - self[0]
 
-        return Vector((v[1]*w[2] - v[2]*w[1])[0,0],
-                      (v[2]*w[0] - v[0]*w[2])[0,0],
-                      (v[0]*w[1] - v[1]*w[0])[0,0])
+        return Vector((v[1]*w[2] - v[2]*w[1]),
+                      (v[2]*w[0] - v[0]*w[2]),
+                      (v[0]*w[1] - v[1]*w[0]))
 
 
     def project(self):
         poly2d = Polygon()
         for pt in self:
-            xval,yval,zval,wval = pt
+            xval,yval,zval,wval = pt.array
             new_x = int(round((1.0*xval/zval * 1.0  * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_WIDTH/2)) if zval != 0 else xval
             new_y = int(round((1.0*yval/zval * -1.0 * PROJECTION_RATIO*(SCREEN_WIDTH/2.0)+0.5) + SCREEN_HEIGHT/2)) if zval != 0 else yval
             poly2d.append(Coord(new_x,new_y))
@@ -513,8 +515,11 @@ class RGBModel(object):
         if isinstance(other, float) or isinstance(other, int):
              returnvalue._numarray = self._numarray*other
              return returnvalue
-
-        product_array = self._numarray*other._numarray
+        try:
+            product_array = self._numarray*other._numarray
+        except Exception,ex:
+            import pdb; pdb.set_trace()
+            x123 =123
         returnvalue._numarray = numpy.where(product_array > 255, product_array, 255)
         return returnvalue
  
@@ -590,12 +595,12 @@ class SpotLight(object):
 
 spotlights = []
 spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.75,0.0)))
-spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.0,0.4,0.0)))
-spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.6)))
+spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.0,0.0,0.0)))
+spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.0)))
 # Hack! Added same spots twice! need to fix
-spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.75,0.0)))
-spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.0,0.4,0.0)))
-spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.6)))
+# spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.75,0.0)))
+# spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.0,0.4,0.0)))
+# spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.6)))
 
 
 cur_colour = None
@@ -610,7 +615,8 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, debug=False):
     
     intensity = IntensityModel(0,0,0)
     for spot in spotlights:
-        diffusion = txpolypts_array.normal.unit.dot( spot.direction_vector)
+        diffusion = txpolypts_array.normal.unit.dot( spot.direction_vector.transform(xform4X4))
+        #print diffusion
         if diffusion > 0:
             intensity = intensity + spot.intensity_model*diffusion
 
