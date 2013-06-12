@@ -515,12 +515,9 @@ class RGBModel(object):
         if isinstance(other, float) or isinstance(other, int):
              returnvalue._numarray = self._numarray*other
              return returnvalue
-        try:
-            product_array = self._numarray*other._numarray
-        except Exception,ex:
-            import pdb; pdb.set_trace()
-            x123 =123
-        returnvalue._numarray = numpy.where(product_array > 255, product_array, 255)
+
+        product_array = self._numarray*other._numarray
+        returnvalue._numarray = numpy.where(product_array < 255, product_array, 255)
         return returnvalue
  
     def __add__(self, other):
@@ -566,6 +563,7 @@ def get_colour_index(colour_model):
     # I think this index calc is dodgey. Might need upgrade, need to test more
     import math
     intround = lambda x : int(math.floor(x)) 
+    #intround = lambda x : int(math.floor((x*1000.0)/1000.0))
 
     red = intround(colour_model.red)
     green = intround(colour_model.green)
@@ -594,13 +592,9 @@ class SpotLight(object):
         self.intensity_model = intensity_model
 
 spotlights = []
-spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.75,0.0)))
-spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.0,0.0,0.0)))
-spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.0)))
-# Hack! Added same spots twice! need to fix
-# spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.75,0.0)))
-# spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.0,0.4,0.0)))
-# spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.6)))
+spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.6,0.0)))
+spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.6,0.0,0.0)))
+spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.6)))
 
 
 cur_colour = None
@@ -615,8 +609,7 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, debug=False):
     
     intensity = IntensityModel(0,0,0)
     for spot in spotlights:
-        diffusion = txpolypts_array.normal.unit.dot( spot.direction_vector.transform(xform4X4))
-        #print diffusion
+        diffusion = txpolypts_array.normal.unit.dot( spot.direction_vector)
         if diffusion > 0:
             intensity = intensity + spot.intensity_model*diffusion
 
@@ -655,6 +648,7 @@ def render(surface,rotation=0):
             # colour  += 50
             # colour = colour %255
             if x1 > x2:                
+                #print cur_colour, get_colour_index(cur_colour)
                 temp_array[x2:x1,y].fill(get_colour_index(cur_colour))
             # else:
             #     temp_array[x1:x2,y].fill(0x00ff00)
