@@ -20,109 +20,6 @@ import numpy
 PROJECTION_RATIO =-5.0
 SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 800
 
-# ------------------ Colour/Palette stuff for light
-class RGBModel(object):
-    def __init__(red=0,green=0,blue=0):
-        self._numarray = numpy.array([colour_comp for colour_comp in [red,green,blue]])
-
-    def get_red(self):
-        return self._numarray[0]       
-    def set_red(self,value):
-        self._numarray[0] = value
-    red = property(get_red,set_red)
-      
-    def get_green(self):
-        return self._numarray[1]       
-    def set_green(self,value):
-        self._numarray[1] = value
-    green= property(get_green,set_green)
-
-    def get_blue(self):
-        return self._numarray[2]       
-    def set_blue(self,value):
-        self._numarray[2] = value
-    blue= property(get_blue,set_blue)
-
-    def __mul__(self,other):
-        returnvalue = RGBModel(0,0,0)
-        # intround = lambda x : int(round(x))+1
-        # returnvalue.red = min( intround(colour_model.red * intensity_model.red), 255)
-        # returnvalue.green = min( intround(colour_model.green * intensity_model.blue), 255)
-        # returnvalue.blue = min( intround(colour_model.blue * intensity_model.green), 255)
-        product_array = self._numarray*other._numarray
-        returnvalue._numarray = np.where(product_array > 255, product_array, 255)
-        return returnvalue
- 
-    def __add__(self, other):
-        returnvalue = RGBModel(0,0,0)
-        returnvalue._numarray = self._numarray + other._numarray
-        return returnvalue
-        
-
-class ColourModel(RGBModel):
-    pass
-
-class IntensityModel(RGBModel):
-    pass
-
-gamma4_levs = [0,39,53,63]
-gamma64_levs = [ 0, 10, 14, 17, 19, 21, 23, 24, 26, 27, 28, 29, 31, 32, 33, 34,
-                 35, 36, 37, 37, 38, 39, 40, 41, 41, 42, 43, 44, 44, 45, 46, 46,
-                 47, 48, 48, 49, 49, 50, 51, 51, 52, 52, 53, 53, 54, 54, 55, 55,
-                 56, 56, 57, 57, 58, 58, 59, 59, 60, 60, 61, 61, 62, 62, 63, 63];
-
-def set_palette(surface):
-    cmap = numpy.zeros((256,3))
-    red,green,blue = 0,1,2
-
-    for r in range(0,4):
-        for g in range(0,4):
-            for b in range(0,4):
-                idx = (r<<4)+(g<<2)+b;
-                cmap[idx, :]= gamma4_levs[r], gamma4_levs[g], gamma4_levs[b]
-
-    for r in range(0,64):
-        cmap[64+r, :] = gamma64_levs[r], 0,0
-
-    for g in range(0,64):
-        cmap[128+g, :] = 0, gamma64_levs[g], 0
-
-    for b in range(0,64):
-        cmap[192+b, :] = 0,0,gamma64_levs[b]
-
-    surface.set_palette(cmap)
-
-def get_colour_index(colour_model):
-    intround = lambda x : int(round(x))+1
-
-    red = intround(colour_model.red)
-    green = intround(colour_model.green)
-    blue = intround(colour_model.blue)
-
-    # red = colour_model.red
-    # green = colour_model.green
-    # blue = colour_model.blue
-
-    if red == 0 and green == 0:
-        return 192+(blue >> 2)
-
-    if red == 0 and blue == 0:
-        return 128+(green >> 2)
-
-    if blue == 0 and green == 0:
-        return 64+(red >> 2)
-    
-    return (((red & 0xC0) >>2)|
-            ((green & 0xC0) >>4)|
-            ((blue & 0xC0) >>6))
-
-def intensity_adjust_colour(colour_model, intensity_model):
-    returnvalue = ModelColour(0,0,0)
-    intround = lambda x : int(round(x))+1
-    returnvalue.red = min( intround(colour_model.red * intensity_model.red), 255)
-    returnvalue.green = min( intround(colour_model.green * intensity_model.blue), 255)
-    returnvalue.blue = min( intround(colour_model.blue * intensity_model.green), 255)
-    return returnvalue
 
 # ------------------ 3d Graphics
 class Vector(object):
@@ -134,6 +31,11 @@ class Vector(object):
                                      [y],
                                      [z]],dtype=numpy.int) 
     
+    def __repr__(self):
+        #import pdb; pdb.set_trace()
+        return "<XYZ:%s>"%(str(self._numarray))
+
+
     def get_array(self):
         return numpy.append(self._numarray,numpy.array([[1]]),axis=0)
     def set_array(self,input_array):        
@@ -168,7 +70,7 @@ class Vector(object):
         return self._numarray-other._numarray 
 
     def dot(self,other):
-        return self._numarray.dot(other)
+        return self._numarray.T[0].dot(other._numarray.T[0])  # sigh.. ugly
 
     @property
     def length(self):
@@ -559,19 +461,6 @@ def fill_convex_poly(vertices, debug=False, hlinelist = None):
     return hlinelist  
 
 
-def xform_and_project_poly(surface, xform4X4, polypts3d):
-    polypts2d = Polygon()
-    txpolypts_array= polypts3d.transform(xform4X4)
-    retvals = None
-    if txpolypts_array.facing:
-        polypts2d = txpolypts_array.project()
-        retvals = fill_convex_poly(polypts2d)
-
-    return retvals
-
-vertices = Polygon([ Coord(-30,-15,-1), Coord(0,15,0), Coord(10,-5, 0)])
-vertices2 = Polygon([ Coord(-30,-15,-20), Coord(0,15,-10), Coord(10,-5, -10)])
-
 def rotate_poly_matrix(rotation):
     cos_rotation = cos(rotation)
     sin_rotation = sin(rotation)
@@ -580,41 +469,187 @@ def rotate_poly_matrix(rotation):
                                  [-sin_rotation,           0.0, cos_rotation, -180.0],
                                  [0.0,                     0.0, 0.0,             1.0] ])
     return polyform
+#colour = 0
+#-------------------------------------------------
+# ------------------ Colour/Palette stuff for light
 
+
+# #define DOT_PRODUCT(V1,V2) \
+#    (FixedMul(V1.X,V2.X)+FixedMul(V1.Y,V2.Y)+FixedMul(V1.Z,V2.Z))
+#dot_product =lambda v1,v2: v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
+dot_product =lambda v1,v2: v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
+
+class RGBModel(object):
+    def __init__(self,red=0,green=0,blue=0):
+        self._numarray = numpy.array([colour_comp for colour_comp in [red,green,blue]])
+        #print self._numarray
+        
+    def __repr__(self):
+        #import pdb; pdb.set_trace()
+        data = tuple([str(colelem) for colelem in [self._numarray[0],self._numarray[1],self._numarray[2]]])
+        return "<red:%s,green:%s,blue:%s>"%data
+        
+    def get_red(self):
+        return self._numarray[0]       
+    def set_red(self,value):
+        self._numarray[0] = value
+    red = property(get_red,set_red)
+      
+    def get_green(self):
+        return self._numarray[1]       
+    def set_green(self,value):
+        self._numarray[1] = value
+    green= property(get_green,set_green)
+
+    def get_blue(self):
+        return self._numarray[2]       
+    def set_blue(self,value):
+        self._numarray[2] = value
+    blue= property(get_blue,set_blue)
+
+    def __mul__(self,other):
+        returnvalue = RGBModel(0,0,0)
+
+        if isinstance(other, float) or isinstance(other, int):
+             returnvalue._numarray = self._numarray*other
+             return returnvalue
+
+        product_array = self._numarray*other._numarray
+        returnvalue._numarray = numpy.where(product_array > 255, product_array, 255)
+        return returnvalue
+ 
+    def __add__(self, other):
+        returnvalue = RGBModel(0,0,0)
+        returnvalue._numarray = self._numarray + other._numarray
+        return returnvalue
+        
+
+class ColourModel(RGBModel):
+    pass
+
+class IntensityModel(RGBModel):
+    pass
+
+gamma4_levs = [0,39,53,63]
+gamma64_levs = [ 0, 10, 14, 17, 19, 21, 23, 24, 26, 27, 28, 29, 31, 32, 33, 34,
+                 35, 36, 37, 37, 38, 39, 40, 41, 41, 42, 43, 44, 44, 45, 46, 46,
+                 47, 48, 48, 49, 49, 50, 51, 51, 52, 52, 53, 53, 54, 54, 55, 55,
+                 56, 56, 57, 57, 58, 58, 59, 59, 60, 60, 61, 61, 62, 62, 63, 63];
+
+def set_palette(surface):
+    cmap = numpy.zeros((256,3))
+    red,green,blue = 0,1,2
+
+    for r in range(0,4):
+        for g in range(0,4):
+            for b in range(0,4):
+                idx = (r<<4)+(g<<2)+b;
+                cmap[idx, :]= gamma4_levs[r], gamma4_levs[g], gamma4_levs[b]
+
+    for r in range(0,64):
+        cmap[64+r, :] = gamma64_levs[r], 0,0
+
+    for g in range(0,64):
+        cmap[128+g, :] = 0, gamma64_levs[g], 0
+
+    for b in range(0,64):
+        cmap[192+b, :] = 0,0,gamma64_levs[b]
+
+    surface.set_palette(cmap)
+
+def get_colour_index(colour_model):
+    # I think this index calc is dodgey. Might need upgrade, need to test more
+    import math
+    intround = lambda x : int(math.floor(x)) 
+
+    red = intround(colour_model.red)
+    green = intround(colour_model.green)
+    blue = intround(colour_model.blue)
+
+    if red == 0 and green == 0 and blue !=0:
+        return 192+(blue >> 2)
+
+    if red == 0 and blue == 0 and green != 0:
+        return 128+(green >> 2)
+
+    if blue == 0 and green == 0 and red != 0:
+        return 64+(red >> 2)
+    
+    ret =  (((red & 0xC0) >>2)|
+            ((green & 0xC0) >>4)|
+            ((blue & 0xC0) >>6))
+    #print ret,colour_model
+    return ret
+
+model_intensity = IntensityModel(0.0,0.0,0.0)
+
+class SpotLight(object):
+    def __init__(self, direction_vector, intensity_model):
+        self.direction_vector = direction_vector
+        self.intensity_model = intensity_model
+
+spotlights = []
+spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.75,0.0)))
+spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.0,0.4,0.0)))
+spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.6)))
+# Hack! Added same spots twice! need to fix
+spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.75,0.0)))
+spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.0,0.4,0.0)))
+spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.6)))
+
+
+cur_colour = None
+
+def xform_and_project_poly(surface, xform4X4, polypts3d, debug=False):
+    global cur_colour
+    
+    polypts2d = Polygon()
+    
+    
+    txpolypts_array= polypts3d.transform(xform4X4)
+    
+    intensity = IntensityModel(0,0,0)
+    for spot in spotlights:
+        diffusion = txpolypts_array.normal.unit.dot( spot.direction_vector)
+        if diffusion > 0:
+            intensity = intensity + spot.intensity_model*diffusion
+
+    cur_colour = ColourModel(255,255,255) * intensity
+    
+    if debug: print intensity, diffusion,cur_colour
+
+    retvals = None
+    if txpolypts_array.facing:
+        polypts2d = txpolypts_array.project()
+        retvals = fill_convex_poly(polypts2d)
+
+    return retvals
+
+vertices = Polygon([ Coord(-30,-15,-20), Coord(0,15,-10), Coord(10,-5, -10)])
+
+#-------------------------------------------------
 def render(surface,rotation=0):
+
     worldform =  numpy.matrix([[1,0,0,0],
                                [0,1,0,0],
                                [0,0,1,0],
-                               [0,0,0,1]])
-
-    
+                               [0,0,0,1]])  
 
     polyform = rotate_poly_matrix(rotation)
 
     worldviewxform =  polyform * worldform
 
     hlinesdata = xform_and_project_poly(surface, worldviewxform, vertices)
-    # hlinesdata2 = xform_and_project_poly(surface, worldviewxform, vertices2)
-
     temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
-
-    # if hlinesdata2:
-    #     y = hlinesdata2.ystart
-    #     for v in hlinesdata2.gettuples():
-    #         x1, x2 = v
-    #         if x1 > x2:                
-    #             temp_array[x2:x1,y].fill(0x00ff00)
-    #         else:
-    #             temp_array[x1:x2,y].fill(0x00ff00)
-    #         y += 1
-    
-
+  
     if hlinesdata:
         y = hlinesdata.ystart
         for v in hlinesdata.gettuples():
             x1, x2 = v
+            # colour  += 50
+            # colour = colour %255
             if x1 > x2:                
-                temp_array[x2:x1,y].fill()
+                temp_array[x2:x1,y].fill(get_colour_index(cur_colour))
             # else:
             #     temp_array[x1:x2,y].fill(0x00ff00)
             y += 1
@@ -622,13 +657,14 @@ def render(surface,rotation=0):
 
 clock = pygame.time.Clock()
 def main():
+    global cur_colour
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT),0,8)
 
     running = True
     rotation = 0
     set_palette(screen)
-
+    cur_colour = ColourModel(255,255,255)
     while running:
         
         render(screen,rotation*pi/30)
