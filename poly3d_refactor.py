@@ -471,23 +471,16 @@ def rotate_poly_matrix(rotation):
                                  [-sin_rotation,           0.0, cos_rotation, -180.0],
                                  [0.0,                     0.0, 0.0,             1.0] ])
     return polyform
-#colour = 0
+
 #-------------------------------------------------
 # ------------------ Colour/Palette stuff for light
 
 
-# #define DOT_PRODUCT(V1,V2) \
-#    (FixedMul(V1.X,V2.X)+FixedMul(V1.Y,V2.Y)+FixedMul(V1.Z,V2.Z))
-#dot_product =lambda v1,v2: v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
-dot_product =lambda v1,v2: v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
-
 class RGBModel(object):
     def __init__(self,red=0,green=0,blue=0):
         self._numarray = numpy.array([colour_comp for colour_comp in [red,green,blue]])
-        #print self._numarray
         
     def __repr__(self):
-        #import pdb; pdb.set_trace()
         data = tuple([str(colelem) for colelem in [self._numarray[0],self._numarray[1],self._numarray[2]]])
         return "<red:%s,green:%s,blue:%s>"%data
         
@@ -581,7 +574,6 @@ def get_colour_index(colour_model):
     ret =  (((red & 0xC0) >>2)|
             ((green & 0xC0) >>4)|
             ((blue & 0xC0) >>6))
-    #print ret,colour_model
     return ret
 
 model_intensity = IntensityModel(0.0,0.0,0.0)
@@ -599,7 +591,7 @@ spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,2.6)))
 
 cur_colour = None
 
-def xform_and_project_poly(surface, xform4X4, polypts3d, debug=False):
+def xform_and_project_poly(xform4X4, polypts3d, debug=False):
     global cur_colour
     
     polypts2d = Polygon()
@@ -627,9 +619,30 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, debug=False):
 vertices = Polygon([ Coord(-10,0,-10), Coord(0,10,-10), Coord(10,0,-10), Coord(0,-10,-10)])
 vertices2 = Polygon([ Coord(-10,0,-20), Coord(0,10,-20), Coord(10,0,-20), Coord(0,-10,-20)])
 
-#-------------------------------------------------
-def render(surface,rotation=0):
+def draw_hlines_to_array(hlinesdata, to_array):    
+    max_x, min_x = None,None
+    max_y, min_y = None,None
 
+    if hlinesdata:
+        y = hlinesdata.ystart
+        max_x, min_x = -1,-1
+        max_y, min_y = -1,hlinesdata.ystart
+        for v in hlinesdata.gettuples():
+            x1, x2 = v
+            max_x = x1 if x1 > max_x else max_x
+            min_x = x2 if x2 < min_x else min_x
+            max_y = y if y < max_y else max_y
+            if x1 > x2:                
+                to_array[x2:x1,y].fill(get_colour_index(cur_colour))
+            y += 1
+    return min_x, max_x, min_y, max_y
+    
+#-------------------------------------------------
+temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
+bounds = []
+def render(surface,rotation=0):
+    global temp_array
+    global bounds
     worldform =  numpy.matrix([[1,0,0,0],
                                [0,1,0,0],
                                [0,0,1,0],
@@ -639,26 +652,20 @@ def render(surface,rotation=0):
 
     worldviewxform =  polyform * worldform
 
-    temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
+    hlinesdata = xform_and_project_poly( worldviewxform, vertices )
+    if hlinesdata and len(bounds)>0:
+        for bound in bounds[:-1]:
+            min_x, max_x, min_y, max_y = bound
+            temp_array[min_x:max_x, min_y:max_y].fill(0)    
+    bounds.append(draw_hlines_to_array(hlinesdata, temp_array))
 
-    hlinesdata = xform_and_project_poly(surface, worldviewxform, vertices)  
-    if hlinesdata:
-        y = hlinesdata.ystart
-        for v in hlinesdata.gettuples():
-            x1, x2 = v
-            if x1 > x2:                
-                temp_array[x2:x1,y].fill(get_colour_index(cur_colour))
-            y += 1
+    #bounds = []
+    #bounds.append(bound)
 
-    hlinesdata2 = xform_and_project_poly(surface, worldviewxform, vertices2)  
-    if hlinesdata2:
-        y = hlinesdata2.ystart
-        for v in hlinesdata2.gettuples():
-            x1, x2 = v
-            if x1 > x2:                
-                temp_array[x2:x1,y].fill(get_colour_index(cur_colour))
-            y += 1
 
+
+    # hlinesdata = xform_and_project_poly( worldviewxform, vertices2 )
+    # draw_hlines_to_array(hlinesdata, temp_array)
 
     pygame.surfarray.blit_array(surface,temp_array)
 
