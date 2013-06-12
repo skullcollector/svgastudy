@@ -20,6 +20,111 @@ import numpy
 PROJECTION_RATIO =-5.0
 SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 800
 
+# ------------------ Colour/Palette stuff for light
+class RGBModel(object):
+    def __init__(red=0,green=0,blue=0):
+        self._numarray = numpy.array([colour_comp for colour_comp in [red,green,blue]])
+
+    def get_red(self):
+        return self._numarray[0]       
+    def set_red(self,value):
+        self._numarray[0] = value
+    red = property(get_red,set_red)
+      
+    def get_green(self):
+        return self._numarray[1]       
+    def set_green(self,value):
+        self._numarray[1] = value
+    green= property(get_green,set_green)
+
+    def get_blue(self):
+        return self._numarray[2]       
+    def set_blue(self,value):
+        self._numarray[2] = value
+    blue= property(get_blue,set_blue)
+
+    def __mul__(self,other):
+        returnvalue = RGBModel(0,0,0)
+        # intround = lambda x : int(round(x))+1
+        # returnvalue.red = min( intround(colour_model.red * intensity_model.red), 255)
+        # returnvalue.green = min( intround(colour_model.green * intensity_model.blue), 255)
+        # returnvalue.blue = min( intround(colour_model.blue * intensity_model.green), 255)
+        product_array = self._numarray*other._numarray
+        returnvalue._numarray = np.where(product_array > 255, product_array, 255)
+        return returnvalue
+ 
+    def __add__(self, other):
+        returnvalue = RGBModel(0,0,0)
+        returnvalue._numarray = self._numarray + other._numarray
+        return returnvalue
+        
+
+class ColourModel(RGBModel):
+    pass
+
+class IntensityModel(RGBModel):
+    pass
+
+gamma4_levs = [0,39,53,63]
+gamma64_levs = [ 0, 10, 14, 17, 19, 21, 23, 24, 26, 27, 28, 29, 31, 32, 33, 34,
+                 35, 36, 37, 37, 38, 39, 40, 41, 41, 42, 43, 44, 44, 45, 46, 46,
+                 47, 48, 48, 49, 49, 50, 51, 51, 52, 52, 53, 53, 54, 54, 55, 55,
+                 56, 56, 57, 57, 58, 58, 59, 59, 60, 60, 61, 61, 62, 62, 63, 63];
+
+def set_palette(surface):
+    cmap = numpy.zeros((256,3))
+    red,green,blue = 0,1,2
+
+    for r in range(0,4):
+        for g in range(0,4):
+            for b in range(0,4):
+                idx = (r<<4)+(g<<2)+b;
+                cmap[idx, :]= gamma4_levs[r], gamma4_levs[g], gamma4_levs[b]
+
+    for r in range(0,64):
+        cmap[64+r, :] = gamma64_levs[r], 0,0
+
+    for g in range(0,64):
+        cmap[128+g, :] = 0, gamma64_levs[g], 0
+
+    for b in range(0,64):
+        cmap[192+b, :] = 0,0,gamma64_levs[b]
+
+    surface.set_palette(cmap)
+
+def get_colour_index(colour_model):
+    intround = lambda x : int(round(x))+1
+
+    red = intround(colour_model.red)
+    green = intround(colour_model.green)
+    blue = intround(colour_model.blue)
+
+    # red = colour_model.red
+    # green = colour_model.green
+    # blue = colour_model.blue
+
+    if red == 0 and green == 0:
+        return 192+(blue >> 2)
+
+    if red == 0 and blue == 0:
+        return 128+(green >> 2)
+
+    if blue == 0 and green == 0:
+        return 64+(red >> 2)
+    
+    return (((red & 0xC0) >>2)|
+            ((green & 0xC0) >>4)|
+            ((blue & 0xC0) >>6))
+
+def intensity_adjust_colour(colour_model, intensity_model):
+    returnvalue = ModelColour(0,0,0)
+    intround = lambda x : int(round(x))+1
+    returnvalue.red = min( intround(colour_model.red * intensity_model.red), 255)
+    returnvalue.green = min( intround(colour_model.green * intensity_model.blue), 255)
+    returnvalue.blue = min( intround(colour_model.blue * intensity_model.green), 255)
+    return returnvalue
+
+# ------------------ 3d Graphics
 class Vector(object):
     '''
     Immutable
@@ -509,20 +614,21 @@ def render(surface,rotation=0):
         for v in hlinesdata.gettuples():
             x1, x2 = v
             if x1 > x2:                
-                temp_array[x2:x1,y].fill(0xff0000)
-            else:
-                temp_array[x1:x2,y].fill(0x00ff00)
+                temp_array[x2:x1,y].fill()
+            # else:
+            #     temp_array[x1:x2,y].fill(0x00ff00)
             y += 1
     pygame.surfarray.blit_array(surface,temp_array)
 
 clock = pygame.time.Clock()
 def main():
     pygame.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT),0,8)
 
     running = True
     rotation = 0
-    
+    set_palette(screen)
+
     while running:
         
         render(screen,rotation*pi/30)
