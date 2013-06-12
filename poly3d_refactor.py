@@ -592,9 +592,9 @@ class SpotLight(object):
         self.intensity_model = intensity_model
 
 spotlights = []
-spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.6,0.0)))
+spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,1.6,0.0)))
 spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.6,0.0,0.0)))
-spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,0.6)))
+spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,2.6)))
 
 
 cur_colour = None
@@ -624,7 +624,11 @@ def xform_and_project_poly(surface, xform4X4, polypts3d, debug=False):
 
     return retvals
 
-vertices = Polygon([ Coord(-30,-15,-20), Coord(0,15,-10), Coord(10,-5, -10)])
+#vertices2 = Polygon([ Coord(-10,-10,-30), Coord(0,10,-20), Coord(10,-5, -20)])
+
+#vertices = Polygon([ Coord(-10,-10,-20), Coord(0,10,-10), Coord(10,-5, -10)])
+vertices = Polygon([ Coord(-10,0,-10), Coord(0,10,-10), Coord(10,0,-10), Coord(0,-10,-10)])
+vertices2 = Polygon([ Coord(-10,0,-20), Coord(0,10,-20), Coord(10,0,-20), Coord(0,-10,-20)])
 
 #-------------------------------------------------
 def render(surface,rotation=0):
@@ -638,21 +642,27 @@ def render(surface,rotation=0):
 
     worldviewxform =  polyform * worldform
 
-    hlinesdata = xform_and_project_poly(surface, worldviewxform, vertices)
     temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
-  
+
+    hlinesdata = xform_and_project_poly(surface, worldviewxform, vertices)  
     if hlinesdata:
         y = hlinesdata.ystart
         for v in hlinesdata.gettuples():
             x1, x2 = v
-            # colour  += 50
-            # colour = colour %255
             if x1 > x2:                
-                #print cur_colour, get_colour_index(cur_colour)
                 temp_array[x2:x1,y].fill(get_colour_index(cur_colour))
-            # else:
-            #     temp_array[x1:x2,y].fill(0x00ff00)
             y += 1
+
+    hlinesdata2 = xform_and_project_poly(surface, worldviewxform, vertices2)  
+    if hlinesdata2:
+        y = hlinesdata2.ystart
+        for v in hlinesdata2.gettuples():
+            x1, x2 = v
+            if x1 > x2:                
+                temp_array[x2:x1,y].fill(get_colour_index(cur_colour))
+            y += 1
+
+
     pygame.surfarray.blit_array(surface,temp_array)
 
 clock = pygame.time.Clock()
