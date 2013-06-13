@@ -584,8 +584,8 @@ class SpotLight(object):
         self.intensity_model = intensity_model
 
 spotlights = []
-spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.6,0.0)))
-#spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.6,0.0,0.0)))
+#spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.6,0.0)))
+spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.6,0.0,0.0)))
 spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,2.6)))
 
 
@@ -646,10 +646,10 @@ def draw_hlines_to_array(hlinesdata, to_array):
     
 #-------------------------------------------------
 temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
-bounds =[]
+bound = (0,0,0,0)
 def render(surface,rotation=0):
     global temp_array
-    global bounds
+    global bound
     worldform =  numpy.matrix([[1,0,0,0],
                                [0,1,0,0],
                                [0,0,1,0],
@@ -662,16 +662,10 @@ def render(surface,rotation=0):
     hlinesdata = xform_and_project_poly( worldviewxform, vertices )
 
     # dirty blit with bounds
-    if len(bounds)>0:
-        for bound in bounds[:-1]:
-            min_x, max_x, min_y, max_y = bound
-            temp_array[min_x:max_x, min_y:max_y].fill(0)    
-
-    if not hlinesdata:
-        bounds =[]
-
-    bounds.append(draw_hlines_to_array(hlinesdata, temp_array))
-    print len(bounds)
+    min_x, max_x, min_y, max_y = bound
+    temp_array[min_x:max_x, min_y:max_y].fill(get_colour_index(ColourModel(0,0,0)))
+    if hlinesdata:
+        bound = draw_hlines_to_array(hlinesdata, temp_array)
 
     pygame.surfarray.blit_array(surface,temp_array)
 
@@ -697,7 +691,7 @@ def main():
                 
 
         pygame.display.flip()
-        clock.tick(40)
+        clock.tick(50)
         screen.fill((0,0,0))
         
     pygame.quit()
