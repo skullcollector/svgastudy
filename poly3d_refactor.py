@@ -584,8 +584,8 @@ class SpotLight(object):
         self.intensity_model = intensity_model
 
 spotlights = []
-spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,1.6,0.0)))
-spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.6,0.0,0.0)))
+spotlights.append(SpotLight(Vector(-1,-1,-1), IntensityModel(0.0,0.6,0.0)))
+#spotlights.append(SpotLight(Vector(1,1,-1), IntensityModel(0.6,0.0,0.0)))
 spotlights.append(SpotLight(Vector(-1,0,0), IntensityModel(0.0,0.0,2.6)))
 
 
@@ -625,21 +625,28 @@ def draw_hlines_to_array(hlinesdata, to_array):
 
     if hlinesdata:
         y = hlinesdata.ystart
-        max_x, min_x = -1,-1
-        max_y, min_y = -1,hlinesdata.ystart
+        max_x, min_x = None,None
+        max_y, min_y = None,y
         for v in hlinesdata.gettuples():
             x1, x2 = v
+            max_x = max_x or x1
+            min_x = min_x or x2
+            min_y = min_y or y
+            max_y = max_y or y
             max_x = x1 if x1 > max_x else max_x
             min_x = x2 if x2 < min_x else min_x
-            max_y = y if y < max_y else max_y
+            max_y = y if y > max_y else max_y
+            min_y = y if y < min_y else min_y
+
             if x1 > x2:                
                 to_array[x2:x1,y].fill(get_colour_index(cur_colour))
             y += 1
+    # return for dirty blit bounds
     return min_x, max_x, min_y, max_y
     
 #-------------------------------------------------
 temp_array = numpy.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))   
-bounds = []
+bounds =[]
 def render(surface,rotation=0):
     global temp_array
     global bounds
@@ -653,19 +660,18 @@ def render(surface,rotation=0):
     worldviewxform =  polyform * worldform
 
     hlinesdata = xform_and_project_poly( worldviewxform, vertices )
-    if hlinesdata and len(bounds)>0:
+
+    # dirty blit with bounds
+    if len(bounds)>0:
         for bound in bounds[:-1]:
             min_x, max_x, min_y, max_y = bound
             temp_array[min_x:max_x, min_y:max_y].fill(0)    
+
+    if not hlinesdata:
+        bounds =[]
+
     bounds.append(draw_hlines_to_array(hlinesdata, temp_array))
-
-    #bounds = []
-    #bounds.append(bound)
-
-
-
-    # hlinesdata = xform_and_project_poly( worldviewxform, vertices2 )
-    # draw_hlines_to_array(hlinesdata, temp_array)
+    print len(bounds)
 
     pygame.surfarray.blit_array(surface,temp_array)
 
